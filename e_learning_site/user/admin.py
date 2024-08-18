@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserProfile
+from .models import UserProfile, CourseEnrollment, ProgramEnrollment
 # Register your models here.
 
 from django.contrib import admin
@@ -16,4 +16,5 @@ class UserProfileAdmin(admin.ModelAdmin):
     image_tag.short_description = 'Image'
 
 admin.site.register(UserProfile, UserProfileAdmin,)
-   
+admin.site.register(CourseEnrollment)
+admin.site.register(ProgramEnrollment)

@@ -7,5 +7,5 @@ admin.site.register(Course)
 admin.site.register(Module)
 admin.site.register(Media) 
 admin.site.register(Application)
-admin.site.register(CourseEnrollment)
-admin.site.register(ProgramEnrollment)
+
+

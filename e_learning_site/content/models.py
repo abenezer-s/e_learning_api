@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from user.models import UserProfile
+#from user.models import UserProfile
 # Create your models here.
 
 class Course(models.Model):
@@ -45,32 +45,32 @@ class Application(models.Model):
     course =  models.ManyToManyField(Course, default=None)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user')
 
-class ProgramEnrollment(models.Model):
-    user = models.ForeignKey(UserProfile,on_delete=models.CASCADE)
-    program = models.ForeignKey(Program,on_delete=models.CASCADE)
-    number_of_courses = models.DecimalField(default=0, max_digits=3, decimal_places=0)
-    number_of_courses_completed = models.DecimalField(default=0, max_digits=3, decimal_places=1)
-    date_of_enrollment = models.DateField()
-    status = [
-        ('accpeted', 'Accepted'),
-        ('rejected', 'Rejected'),
-        ('pending', 'Pending'),
-    ]
-
-    state = models.CharField(max_length=8, choices=status)
-    progress = models.DecimalField(default=0,  max_digits=3, decimal_places=1)
-
-class CourseEnrollment(models.Model):
-    user = models.ForeignKey(UserProfile,on_delete=models.CASCADE)
-    course = models.ForeignKey(Course,on_delete=models.CASCADE)
-    number_of_modules = models.DecimalField(default=0, max_digits=3, decimal_places=0)
-    number_of_modules_completed = models.DecimalField(default=0, max_digits=3, decimal_places=1)
-    date_of_enrollment = models.DateField()
-    status = [
-        ('accpeted', 'Accepted'),
-        ('rejected', 'Rejected'),
-        ('pending', 'Pending'),
-    ]
-
-    state = models.CharField(max_length=8, choices=status)
-    progress = models.DecimalField(default=0,  max_digits=3, decimal_places=1)
+#class ProgramEnrollment(models.Model):
+#    user = models.ForeignKey(UserProfile,on_delete=models.CASCADE)
+#    program = models.ForeignKey(Program,on_delete=models.CASCADE)
+#    number_of_courses = models.DecimalField(default=0, max_digits=3, decimal_places=0)
+#    number_of_courses_completed = models.DecimalField(default=0, max_digits=3, decimal_places=1)
+#    date_of_enrollment = models.DateField()
+#    status = [
+#        ('accpeted', 'Accepted'),
+#        ('rejected', 'Rejected'),
+#        ('pending', 'Pending'),
+#    ]
+#
+#    state = models.CharField(max_length=8, choices=status)
+#    progress = models.DecimalField(default=0,  max_digits=3, decimal_places=1)
+#
+#class CourseEnrollment(models.Model):
+#    user = models.ForeignKey(UserProfile,on_delete=models.CASCADE)
+#    course = models.ForeignKey(Course,on_delete=models.CASCADE)
+#    number_of_modules = models.DecimalField(default=0, max_digits=3, decimal_places=0)
+#    number_of_modules_completed = models.DecimalField(default=0, max_digits=3, decimal_places=1)
+#    date_of_enrollment = models.DateField()
+#    status = [
+#        ('accpeted', 'Accepted'),
+#        ('rejected', 'Rejected'),
+#        ('pending', 'Pending'),
+#    ]
+#
+#    state = models.CharField(max_length=8, choices=status)
+#    progress = models.DecimalField(default=0,  max_digits=3, decimal_places=1)
