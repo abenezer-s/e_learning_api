@@ -31,6 +31,8 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         ]
 
     def create(self, validated_data):
+        creater = self.context.get('who')
+        #print(f'its a {who}')
         
         user = User.objects.create_user(
             username=validated_data['username'],
@@ -38,11 +40,21 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
             last_name=validated_data['last_name'],
             email=validated_data['email'],
             password=validated_data['password']
-        )
 
-        UserProfile.objects.create(user=user)
+        )
+        #use provided context inorder to assing the type of user created
+        if creater == 'creater':
+            UserProfile.objects.create(user=user, creater=True)
+        else:
+            UserProfile.objects.create(user=user)
+
 
         return user
+    
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField()
     
 class ProgramEnrollmentSerializer(serializers.ModelSerializer):
     class Meta:
