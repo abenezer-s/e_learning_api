@@ -14,7 +14,7 @@ urlpatterns = [
     path('application/create/', ApplicationCreateAPIView.as_view()),
 
     path('programs/', ProgramListAPIView.as_view()),
-    path('courses/', CourseListAPIView.as_view()),
+    path('courses/', CourseListAPIView.as_view(), name='courses-api'),
     path('modules/', ModuleListAPIView.as_view()),
     path('medias/', MediaListAPIView.as_view()),
     path('applications/', ApplicationListAPIView.as_view()),
