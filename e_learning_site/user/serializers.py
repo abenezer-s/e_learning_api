@@ -31,7 +31,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         ]
 
     def create(self, validated_data):
-        creater = self.context.get('who')
+        creator = self.context.get('who')
         #print(f'its a {who}')
         
         user = User.objects.create_user(
@@ -43,8 +43,8 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
         )
         #use provided context inorder to assing the type of user created
-        if creater == 'creater':
-            UserProfile.objects.create(user=user, creater=True)
+        if creator == 'creator':
+            UserProfile.objects.create(user=user, creator=True)
         else:
             UserProfile.objects.create(user=user)
 

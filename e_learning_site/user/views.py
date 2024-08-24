@@ -12,10 +12,10 @@ from django.http import HttpResponse
 
 #registratoin_view
 @api_view(['POST'])
-def content_creater_sign_up(request):
+def content_creator_sign_up(request):
     if request.method == 'POST':
       #pass more context inorder to indetify who is signing up
-      serializer = UserSerializer(data=request.data, context={'request':request, 'who': 'creater'})
+      serializer = UserSerializer(data=request.data, context={'request':request, 'who': 'creator'})
       if serializer.is_valid():
           serializer.save()
           return Response(serializer.data, status=status.HTTP_201_CREATED)
