@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from rest_framework import generics
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from .models import *
 from .serializers import *
 from rest_framework import status
@@ -44,6 +44,11 @@ class LoginView(APIView):
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+class LogoutView(APIView):
+    def post(self, request):
+        logout(request)
+        return redirect('login-view')
+        
 class UserProfileDetailAPIView(generics.RetrieveAPIView):
     """
     view for user profile details

@@ -4,6 +4,7 @@ urlpatterns = [
     path('consumer_sign-up/', content_consumer_sign_up, name='signup-consumer'),
     path('creator_sign-up/', content_creator_sign_up, name='signup-creator'),
     path('login/', LoginView.as_view(), name='login-view'),
+    path('logout/', LogoutView.as_view(), name='logout-view'),
     path('', UserProfileListAPIView.as_view(), name='UserProfile-list-api-view'),
     path('<int:pk>/', UserProfileDetailAPIView.as_view(), name='UserProfile-detail-api-view'),
     path('<int:pk>/edit/',  UserProfileUpdateAPIView.as_view(), name='UserProfile-update-api-view'),
