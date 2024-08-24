@@ -8,6 +8,7 @@ urlpatterns = [
     path('application/<int:pk>/', ApplicationDetailAPIView.as_view()),
 
     path('create/program/', ProgramCreateAPIView.as_view()),
+    path('add/course/', AddCourseAPIView.as_view(), name='add_course-view'),
     path('create/course/', CourseCreateAPIView.as_view()),
     path('module/create/', ModuleCreateAPIView.as_view()),
     path('media/create/', MediaCreateAPIView.as_view()),

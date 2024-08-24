@@ -6,5 +6,5 @@ class IsContentCreator(BasePermission):
         try:
             return request.user.userprofile.creator
         except:
-            return HttpResponse('usr is admin')
+            return HttpResponse('usr is superuser')
 

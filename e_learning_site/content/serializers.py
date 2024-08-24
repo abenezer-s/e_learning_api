@@ -6,6 +6,10 @@ class ProgramSerialzer(serializers.ModelSerializer):
         model = Program
         fields = '__all__'
 
+class AddCourseSerializer(serializers.Serializer):
+    course = serializers.CharField()
+    program = serializers.CharField()
+    
 class CourseSerialzer(serializers.ModelSerializer):
     class Meta:
         model = Course

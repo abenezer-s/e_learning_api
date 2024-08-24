@@ -1,10 +1,13 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework import generics
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from .permissions import IsContentCreator
 from .models import *
 from .serializers import *
+from decimal import Decimal
 
 #detail views
 class ProgramDetailAPIView(generics.RetrieveAPIView):
@@ -35,6 +38,31 @@ class ApplicationDetailAPIView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 #create views
+class AddCourseAPIView(APIView):
+   """
+   Add course to program if user owns both the course and the program
+   """
+   def post(self, request):
+       serializer = AddCourseSerializer(data=request.data)
+       if serializer.is_valid():
+            course_name = serializer.validated_data['course']
+            program_name = serializer.validated_data['program']
+            course = Course.objects.get(name=course_name)
+            program = Program.objects.get(name=program_name)
+            if (course and program):
+                if course.owner == program.owner == request.user:   
+                    program.courses.add(course)
+                    num_courses = program.number_of_courses #update number of courses field to reflect chnage
+                    num_courses += Decimal(1)
+                    program.number_of_courses = num_courses
+                    program.save()
+
+                    return redirect('add_course-view')
+                else:
+                    return Response({"message": "you do not have permission to perform this action"})
+            else:
+               return Response({"message": "course or program does not exist"})
+               
 class ProgramCreateAPIView(generics.CreateAPIView):
     queryset = Program.objects.all()
     serializer_class = ProgramSerialzer
