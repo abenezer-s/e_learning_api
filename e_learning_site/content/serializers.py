@@ -9,6 +9,18 @@ class ProgramSerialzer(serializers.ModelSerializer):
 class AddCourseSerializer(serializers.Serializer):
     course = serializers.CharField()
     program = serializers.CharField()
+
+class EnrollSerializer(serializers.Serializer):
+    course = serializers.CharField()
+    program = serializers.CharField()
+    username = serializers.CharField()
+
+class ApplySerializer(serializers.Serializer):
+    learner = serializers.CharField()
+    motivation_letter = serializers.CharField()
+    program_name = serializers.CharField()
+    course_name = serializers.CharField()
+
     
 class CourseSerialzer(serializers.ModelSerializer):
     class Meta:

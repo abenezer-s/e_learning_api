@@ -1,47 +1,49 @@
+from datetime import datetime
 from django.shortcuts import render, redirect
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .permissions import IsContentCreator
+from .permissions import IsContentCreator, IsLearner
 from .models import *
 from .serializers import *
 from decimal import Decimal
 
-#detail views
-class ProgramDetailAPIView(generics.RetrieveAPIView):
-    queryset = Program.objects.all()
-    serializer_class = ProgramSerialzer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    lookup_field = 'name'
+class Apply(APIView):
+    permission_classes = [IsLearner]
 
-class CourseDetailAPIView(generics.RetrieveAPIView):
-    queryset = Course.objects.all()
-    serializer_class = CourseSerialzer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    lookup_field = 'name'
+    def post(self, request):
+        date = datetime.now()
+        serializer = ApplySerializer(data=request.data)
+        if serializer.is_valid():
+            learner = serializer.validated_data['learner']
+            motivation_letter = serializer.validated_data['motivation_letter']
+            program_name = serializer.validated_data['program_name']
+            course_name = serializer.validated_data['course_name']
 
-class ModuleDetailAPIView(generics.RetrieveAPIView):
-    queryset = Module.objects.all()
-    serializer_class = ModuleSerialzer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+            course = Course.objects.get(name=course_name)
+            if course:
+                course_owner = course.owner
+                learner_user = User.objects.get(username=learner)
+                application = Application.objects.create(owner=course_owner, learner=learner_user,submitted_at=date, motivation_letter=motivation_letter)
+                application.course.add(course)
+                return Response({"message":"successfully applied"})
+            else:
+                program = Program.objects.get(name=program_name)
 
-class MediaDetailAPIView(generics.RetrieveAPIView):
-    queryset = Media.objects.all()
-    serializer_class = ApplicationSerialzer 
-    permission_classes = [IsAuthenticatedOrReadOnly]
-
-class ApplicationDetailAPIView(generics.RetrieveAPIView):
-    queryset = Application.objects.all()
-    serializer_class = ApplicationSerialzer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-
-#create views
+            return Response({"message":"course not provided"})
+        print(serializer.errors)
+        return Response({"message":"invalid serializer"})
+            
+class Enroll(APIView):
+    pass
 class AddCourseAPIView(APIView):
    """
-   Add course to program if user owns both the course and the program
+   Providing course and program name as JSON, add course to the program if user owns both the course and the program
    """
+   permission_classes = [IsContentCreator]
+
    def post(self, request):
        serializer = AddCourseSerializer(data=request.data)
        if serializer.is_valid():
@@ -63,6 +65,37 @@ class AddCourseAPIView(APIView):
             else:
                return Response({"message": "course or program does not exist"})
                
+#detail views
+class ProgramDetailAPIView(generics.RetrieveAPIView):
+    queryset = Program.objects.all()
+    serializer_class = ProgramSerialzer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'name'
+
+class CourseDetailAPIView(generics.RetrieveAPIView):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerialzer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'name'
+
+class ModuleDetailAPIView(generics.RetrieveAPIView):
+
+    queryset = Module.objects.all()
+    serializer_class = ModuleSerialzer
+    permission_classes = [IsAuthenticated]
+
+class MediaDetailAPIView(generics.RetrieveAPIView):
+    queryset = Media.objects.all()
+    serializer_class = ApplicationSerialzer 
+    permission_classes = [IsAuthenticated]
+
+class ApplicationDetailAPIView(generics.RetrieveAPIView):
+    queryset = Application.objects.all()
+    serializer_class = ApplicationSerialzer
+    permission_classes = [IsAuthenticated]
+
+#create views
+
 class ProgramCreateAPIView(generics.CreateAPIView):
     queryset = Program.objects.all()
     serializer_class = ProgramSerialzer
@@ -137,7 +170,7 @@ class ApplicationListAPIView(generics.ListAPIView):
 class ProgramUpdateAPIView(generics.UpdateAPIView):
     queryset = Program.objects.all()
     serializer_class = ProgramSerialzer
-    
+    permission_classes = [IsContentCreator]
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -149,6 +182,7 @@ class ProgramUpdateAPIView(generics.UpdateAPIView):
 class CourseUpdateAPIView(generics.UpdateAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseSerialzer
+    permission_classes = [IsContentCreator]
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -160,6 +194,8 @@ class CourseUpdateAPIView(generics.UpdateAPIView):
 class ModuleUpdateAPIView(generics.UpdateAPIView):
     queryset = Module.objects.all()
     serializer_class = ModuleSerialzer
+    permission_classes = [IsContentCreator]
+
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -171,6 +207,8 @@ class ModuleUpdateAPIView(generics.UpdateAPIView):
 class MediaUpdateAPIView(generics.UpdateAPIView):
     queryset = Media.objects.all()
     serializer_class = ApplicationSerialzer
+    permission_classes = [IsContentCreator]
+
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -182,6 +220,8 @@ class MediaUpdateAPIView(generics.UpdateAPIView):
 class ApplicationUpdateAPIView(generics.UpdateAPIView):
     queryset = Application.objects.all()
     serializer_class = ApplicationSerialzer
+    permission_classes = [IsContentCreator]
+
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -194,26 +234,32 @@ class ApplicationUpdateAPIView(generics.UpdateAPIView):
 class ProgramDestroyAPIView(generics.DestroyAPIView):
     queryset = Program.objects.all()
     serializer_class = ProgramSerialzer
+    permission_classes = [IsContentCreator]
+
     
     
 class CourseDestroyAPIView(generics.DestroyAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseSerialzer
+    permission_classes = [IsContentCreator]
     
 
 class ModuleDestroyAPIView(generics.DestroyAPIView):
     queryset = Module.objects.all()
     serializer_class = ModuleSerialzer
+    permission_classes = [IsContentCreator]
     
 
 class MediaDestroyAPIView(generics.DestroyAPIView):
     queryset = Media.objects.all()
     serializer_class = ApplicationSerialzer
+    permission_classes = [IsContentCreator]
     
 
 class ApplicationDestroyAPIView(generics.DestroyAPIView):
     queryset = Application.objects.all()
     serializer_class = ApplicationSerialzer
+    permission_classes = [IsContentCreator]
     
 
 

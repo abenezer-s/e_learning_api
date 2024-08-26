@@ -13,6 +13,7 @@ urlpatterns = [
     path('module/create/', ModuleCreateAPIView.as_view()),
     path('media/create/', MediaCreateAPIView.as_view()),
     path('application/create/', ApplicationCreateAPIView.as_view()),
+    path('course/apply', Apply.as_view()),
 
     path('programs/', ProgramListAPIView.as_view()),
     path('courses/', CourseListAPIView.as_view(), name='courses-api'),
