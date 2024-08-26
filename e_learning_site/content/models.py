@@ -41,10 +41,10 @@ class Media(models.Model):
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='module')
                                    
 class Application(models.Model):
-    owner = models.ForeignKey(User,default=None, on_delete=models.CASCADE, related_name='application_owner')
+    owner = models.ForeignKey(User,default=None, on_delete=models.CASCADE, related_name='program_course_owner') #program/course owner
+    learner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='learner')
     motivation_letter = models.TextField(max_length=600, blank=False)
     submitted_at = models.DateField(blank=False)
     program = models.ManyToManyField(Program, default=None)
     course =  models.ManyToManyField(Course, default=None)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user')
 
