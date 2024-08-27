@@ -47,4 +47,11 @@ class Application(models.Model):
     submitted_at = models.DateField(blank=False)
     program = models.ManyToManyField(Program, default=None)
     course =  models.ManyToManyField(Course, default=None)
+    status = [
+        ('accpeted', 'Accepted'),
+        ('rejected', 'Rejected'),
+        ('pending', 'Pending'),
+    ]
+    
+    state = models.CharField(max_length=20, choices=status)
 

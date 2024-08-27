@@ -11,8 +11,11 @@ from .serializers import *
 from decimal import Decimal
 
 class Apply(APIView):
+    """
+    learner passes in application information for a course or program, 
+    an Application instance will be created conatining the info.
+    """
     permission_classes = [IsLearner]
-
     def post(self, request):
         date = datetime.now()
         serializer = ApplySerializer(data=request.data)
