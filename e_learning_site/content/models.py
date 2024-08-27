@@ -48,10 +48,10 @@ class Application(models.Model):
     program = models.ManyToManyField(Program, default=None)
     course =  models.ManyToManyField(Course, default=None)
     status = [
-        ('accpeted', 'Accepted'),
+        ('accepted', 'Accepted'),
         ('rejected', 'Rejected'),
         ('pending', 'Pending'),
     ]
     
-    state = models.CharField(max_length=20, choices=status)
+    state = models.CharField(max_length=20, default=None, choices=status)
 

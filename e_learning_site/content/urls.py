@@ -20,6 +20,8 @@ urlpatterns = [
     path('modules/', ModuleListAPIView.as_view()),
     path('medias/', MediaListAPIView.as_view()),
     path('applications/', ApplicationListAPIView.as_view()),
+    path('applications/respond', ApplicationResponse.as_view()),
+
 
     path('program/<int:pk>/update/', ProgramUpdateAPIView.as_view()),
     path('course/<int:pk>/update/', CourseUpdateAPIView.as_view()),

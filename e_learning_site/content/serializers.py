@@ -20,6 +20,12 @@ class ApplySerializer(serializers.Serializer):
     motivation_letter = serializers.CharField()
     program_name = serializers.CharField()
     course_name = serializers.CharField()
+class ApplicationResponseSerializer(serializers.Serializer):
+    learner = serializers.CharField()
+    program_name = serializers.CharField()
+    course_name = serializers.CharField()
+    response = serializers.CharField()
+
 
     
 class CourseSerialzer(serializers.ModelSerializer):

@@ -15,16 +15,15 @@ class UserProfile(models.Model):
         return (self.user.username)
     
 class ProgramEnrollment(models.Model):
-    user = models.ForeignKey(UserProfile,on_delete=models.CASCADE)
+    learner = models.ForeignKey(UserProfile,on_delete=models.CASCADE)
     program = models.ForeignKey(Program,on_delete=models.CASCADE)
     number_of_courses_completed = models.DecimalField(default=0, max_digits=3, decimal_places=1)
     date_of_enrollment = models.DateField()
     progress = models.DecimalField(default=0,  max_digits=3, decimal_places=1)
 
 class CourseEnrollment(models.Model):
-    user = models.ForeignKey(UserProfile,on_delete=models.CASCADE)
+    learner = models.ForeignKey(UserProfile,on_delete=models.CASCADE)
     course = models.ForeignKey(Course,on_delete=models.CASCADE)
-    number_of_modules = models.DecimalField(default=0, max_digits=3, decimal_places=0)
     number_of_modules_completed = models.DecimalField(default=0, max_digits=3, decimal_places=1)
     date_of_enrollment = models.DateField()
     progress = models.DecimalField(default=0,  max_digits=3, decimal_places=1)
