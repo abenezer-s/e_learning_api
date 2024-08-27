@@ -19,13 +19,6 @@ class ProgramEnrollment(models.Model):
     program = models.ForeignKey(Program,on_delete=models.CASCADE)
     number_of_courses_completed = models.DecimalField(default=0, max_digits=3, decimal_places=1)
     date_of_enrollment = models.DateField()
-    status = [
-        ('accpeted', 'Accepted'),
-        ('rejected', 'Rejected'),
-        ('pending', 'Pending'),
-    ]
-
-    state = models.CharField(max_length=8, default=None, choices=status)
     progress = models.DecimalField(default=0,  max_digits=3, decimal_places=1)
 
 class CourseEnrollment(models.Model):
@@ -34,11 +27,4 @@ class CourseEnrollment(models.Model):
     number_of_modules = models.DecimalField(default=0, max_digits=3, decimal_places=0)
     number_of_modules_completed = models.DecimalField(default=0, max_digits=3, decimal_places=1)
     date_of_enrollment = models.DateField()
-    status = [
-        ('accpeted', 'Accepted'),
-        ('rejected', 'Rejected'),
-        ('pending', 'Pending'),
-    ]
-
-    state = models.CharField(max_length=8, choices=status)
     progress = models.DecimalField(default=0,  max_digits=3, decimal_places=1)
