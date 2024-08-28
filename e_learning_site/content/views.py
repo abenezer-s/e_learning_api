@@ -39,7 +39,7 @@ class ApplicationResponse(APIView):
             except ObjectDoesNotExist:
                 return Response({"message":"Application not found"})
     
-            return
+            return Response({"message":"Application to course rejected succesfully"})
         
         else:
             try:
@@ -58,7 +58,7 @@ class ApplicationResponse(APIView):
             
             application.state = 'rejected'
             application.save()
-            return
+            return Response({"message":"Application to program rejected succesfully"})
 
     def accept(self, learner, program_name, course_name, request, date):
         if course_name != 'None':
@@ -81,7 +81,7 @@ class ApplicationResponse(APIView):
 
             
             CourseEnrollment.objects.create(learner=learner_profile, course=course, date_of_enrollment=date)
-            return
+            return Response({"message":"Application to program accepted succesfully"})
                 
         else:
             try:
@@ -95,13 +95,14 @@ class ApplicationResponse(APIView):
                 return Response({"message":"no program or learner found by the provided program or program name"})
             
             try:
-                application = Application.objects.get(Q(program=program) & Q(learner=learner_profile))
-                application.state = 'pending' # needs fixing
+                application = Application.objects.get(Q(program=program) & Q(learner=learner_obj))
+                application.state = 'accepted' 
                 application.save()
             except ObjectDoesNotExist:
                 return Response({"message":"Application not found"})
 
             ProgramEnrollment.objects.create(learner=learner_profile, program=program, date_of_enrollment=date) 
+            return Response({"message":"Application to program accepted succesfully"})
 
     def post(self, request):
         date = datetime.now()
@@ -116,8 +117,8 @@ class ApplicationResponse(APIView):
             
             #enroll learner to course/program if accepted            
             if response == 'Accept':
-                self.accept(learner, program_name, course_name, request, date)
-                return Response({"message":"Application accepted succesfully"})
+                response = self.accept(learner, program_name, course_name, request, date)
+                return response
             else:
                 self.reject(learner, program_name, course_name, request, date)
                 return Response({"message":"Application rejected succesfully"})
@@ -125,9 +126,6 @@ class ApplicationResponse(APIView):
                     
             pass
 
-
-
-    
 class Apply(APIView):
     """
     learner passes in application information for a course or program, 
@@ -181,6 +179,7 @@ class Apply(APIView):
             
 class Enroll(APIView):
     pass
+               
 class AddCourseAPIView(APIView):
    """
    Providing course and program name as JSON, add course to the program if user owns both the course and the program
@@ -263,7 +262,24 @@ class ModuleCreateAPIView(generics.CreateAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly, IsContentCreator] 
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        date = datetime.now()
+        if serializer.is_valid():
+            name = serializer.validated_data['name']
+            course_name = serializer.validated_data['course']
+            try:
+                course = Course.objects.get(name=course_name)
+            except ObjectDoesNotExist:
+                return Response({"message": "course does not exist"})
+
+            if course.owner == self.request.user: 
+                Module.objects.create(owner=self.request.user, course=course, name=name, created_at=date)  
+                num_modules = course.number_of_modules #update number of modules field to reflect chnage
+                num_modules += Decimal(1)
+                course.number_of_modules = num_modules
+                course.save()
+                return Response({"message": "module created succesfully"})
+            else:
+                return Response({"message": "you do not have permission to perform this action"})
 
 
 class MediaCreateAPIView(generics.CreateAPIView):
