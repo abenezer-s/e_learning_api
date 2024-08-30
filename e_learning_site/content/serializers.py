@@ -6,6 +6,11 @@ class ProgramSerialzer(serializers.ModelSerializer):
         model = Program
         fields = '__all__'
 
+class LearnerCompletionSerializer(serializers.Serializer):
+    module_name= serializers.CharField()
+    learner_username= serializers.CharField()
+        
+
 class AddCourseSerializer(serializers.Serializer):
     course = serializers.CharField()
     program = serializers.CharField()
@@ -23,6 +28,7 @@ class ApplySerializer(serializers.Serializer):
     motivation_letter = serializers.CharField()
     program_name = serializers.CharField()
     course_name = serializers.CharField()
+
 class ApplicationResponseSerializer(serializers.Serializer):
     learner = serializers.CharField()
     program_name = serializers.CharField()
@@ -40,10 +46,8 @@ class ModuleSerialzer(serializers.ModelSerializer):
     class Meta:
         model = Module
         fields = [
-            'owner ', 
-            'name ', 
-            'course ',
-            'completed '
+            'name', 
+            'course',
         ]
 
 class ApplicationSerialzer(serializers.ModelSerializer):

@@ -8,13 +8,13 @@ urlpatterns = [
     path('application/<int:pk>/', ApplicationDetailAPIView.as_view()),
 
     path('create/program/', ProgramCreateAPIView.as_view()),
-    path('add/course/', AddCourseAPIView.as_view(), name='add_course-view'),
+    path('add/course/', AddCourseAPIView.as_view(), name='add-course-view'),
     path('create/course/', CourseCreateAPIView.as_view()),
     path('create/module/', ModuleCreateAPIView.as_view()),
     path('media/create/', MediaCreateAPIView.as_view()),
     path('application/create/', ApplicationCreateAPIView.as_view()),
     path('apply/', Apply.as_view()),
-    path('mark_as_complete/', MarkAsComplete.as_view()),
+    path('mark_complete/', MarkComplete.as_view()),
 
     path('programs/', ProgramListAPIView.as_view()),
     path('courses/', CourseListAPIView.as_view(), name='courses-api'),

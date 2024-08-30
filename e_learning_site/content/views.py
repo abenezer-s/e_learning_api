@@ -13,52 +13,109 @@ from user.models import CourseEnrollment, ProgramEnrollment, UserProfile
 from .serializers import *
 from decimal import Decimal
 
-class MarkAsComplete(APIView):
+class MarkComplete(APIView):
     """
-    given the module NAME mark it as completed and update overal progress on the program or course.
+    Given the module name and learner username, mark the module as completed 
+    and update overal progress on the program or course.
     """
     permission_classes = [IsLearnerOrContentCreater]
 
-    def update_module(self, module_course, enrollment):
+    def update_progress(self,learner, module, course_enrollment, program_enrollment=None):
+        date = datetime.now()
+        course_enrollment.number_of_modules_completed += Decimal(1)
+        module_course = course_enrollment.course
         num_modules = module_course.number_of_modules
-        completed = enrollment.number_of_modules_completed
-        progress = (completed / num_modules) * 100
-        enrollment.progress = progress
-        enrollment.save()
+        completed_modules = course_enrollment.number_of_modules_completed
+
+        if course_enrollment.progress != 100:
+
+            progress = (completed_modules / num_modules) * 100
+            course_enrollment.progress = progress
+            cur_progress_course = course_enrollment.progress #current progress in course
+            course_enrollment.save()
+            #check if course is part of a program and update program progress if course is completed
+            if program_enrollment and (cur_progress_course == 100):
+                
+                program_enrollment.number_of_courses_completed += Decimal(1)
+                module_program = program_enrollment.program
+                num_courses = module_program.number_of_courses
+                completed_courses = program_enrollment.number_of_courses_completed
+
+                if program_enrollment.progress != 100:
+                    progress = (completed_courses / num_modules) * 100
+                    program_enrollment.progress = progress
+                    cur_progress_program = program_enrollment.progress #current progress in program
+                    program_enrollment.save()
+                    if cur_progress_program == 100:
+                        #learner has completed the program
+                        LearnerCompletion.objects.create(learner=learner, module=module, course=module_course, program=module_program, completed_at=date)
+                        return Response({"message":"course and program completed successfully!"})
+                    else:
+                        #learner has completed the course
+                        LearnerCompletion.objects.create(learner=learner, module=module, completed_at=date)
+                        return Response({"message":"program completed successfully!"})
+                    
+                else:
+                    return Response({"message":"program already completed"})
+                
+            else:
+                #learner has completed the module
+                LearnerCompletion.objects.create(learner=learner, module=module, completed_at=date)
+                return Response({"message":"module completed successfully!"})
+
+        else:
+            return Response({"message":"course already completed"})
+        #update program progress if part of a program
 
     def patch(self, request):
-        date = datetime.now()
-        serializer = MarkAsCompleteSerializer(data=request.data)
+        serializer = LearnerCompletionSerializer(data=request.data)
         if serializer.is_valid():
-            module_name = serializer.validated_data['module']
+            module_name = serializer.validated_data['module_name']
+            learner_username = serializer.validated_data['learner_username']
             user = self.request.user
-            user_profile = UserProfile.objects.get(user=user)
+            # get instances
+            try:
+                learner = User.objects.get(username=learner_username)
+            except User.DoesNotExist:
+                return Response({"message":"learner not found"})
+            
+            learner_profile = UserProfile.objects.get(user=learner)
+            
             try:
                 module = Module.objects.get(name=module_name)
             except Module.DoesNotExist:
                 return Response({"message":"module does not exist"})
             
-            #update module
-            module.completed = True
-            module.completed_at = date
-            # check progress
-            module_course = module.course
+            module_course = module.course   #course where the module belongs to
             try:
-                course_program = Program.objects.get(courses__name=module_course.name)
-            except Program.DoesNotExist:
-                # course not parrt of a program
-                try:
-                    enrollment = CourseEnrollment.objects.get(Q(learner=user_profile) & Q(course=module_course))
-                except CourseEnrollment.DoesNotExist:
-                    if user == module_course.owner:
-                        self.update_module(module_course, enrollment)
-                    else:
-                        return Response({"message":"You do not have permission to perform this action"})
-                
-                self.update_module(module_course, enrollment)
-                return Response({"message":"module marked as complet successfully"})
-                
+                course_enrollment = CourseEnrollment.objects.get(Q(learner=learner_profile) & Q(course=module_course))
+                is_enrolled_course = True          
+            except CourseEnrollment.DoesNotExist:
+                is_enrolled_course = False
+            #if learner is enrolled or user is owner of module
+            if learner or module.owner:
 
+                if is_enrolled_course:# or user == module.owner:
+                    try:
+                        module_program = Program.objects.get(courses__name=module_course.name)
+                    except Program.DoesNotExist:
+                        #course not part of program
+                        update = self.update_progress(learner, module, course_enrollment)
+                        return update
+                    try:
+                        program_enrollment = ProgramEnrollment.objects.get(Q(learner=learner_profile) & Q(program=module_program))
+                    except ProgramEnrollment.DoesNotExist:
+                        return Response({"message":"not enrolled in program"})
+                    #course is part of a program
+                    update = self.update_progress(learner, module, course_enrollment, program_enrollment=program_enrollment)
+                    return update
+                
+                else:
+                    return Response({"message":"you do not have permisssion to perform this action"})
+            else:
+                    return Response({"message":"you do not have permisssion to perform this action"})
+                
+            
 class ApplicationResponse(APIView):
     """
     Provided with the program/course name, learner's username and a response, reject or accept application.
@@ -128,7 +185,8 @@ class ApplicationResponse(APIView):
             
             CourseEnrollment.objects.create(learner=learner_profile, course=course, date_of_enrollment=date)
             return Response({"message":"Application to program accepted succesfully"})
-                
+
+        #response for program                
         else:
             try:
                 learner_obj = User.objects.get(username=learner)
@@ -247,7 +305,7 @@ class AddCourseAPIView(APIView):
                     program.number_of_courses = num_courses
                     program.save()
 
-                    return redirect('add_course-view')
+                    return redirect('add-course-view')
                 else:
                     return Response({"message": "you do not have permission to perform this action"})
             else:
@@ -278,19 +336,29 @@ class ModuleDetailAPIView(generics.RetrieveAPIView):
         module = self.get_object()
         module_owner = module.owner
         modules_course = module.course
+        course_program = Program.objects.get(course=modules_course)
         requester = self.request.user
         user_profile = UserProfile.objects.get(user=requester)
             
         try:
             CourseEnrollment.objects.get(Q(course=modules_course) & Q(learner=user_profile))
-            isEnrolled = True
+            is_enrolled_course = True
         except CourseEnrollment.DoesNotExist:
-            isEnrolled = False
-        
-        if isEnrolled or (module_owner == requester):
+            is_enrolled_course = False
+        try:
+            ProgramEnrollment.objects.get(Q(program=course_program) & Q(learner=user_profile))
+            is_enrolled_program = True
+        except ProgramEnrollment.DoesNotExist:
+            is_enrolled_program = False
+
+        #grant access
+        if is_enrolled_course or is_enrolled_program or (module_owner == requester):
             return super().get(request, *args, **kwargs)
         else:
-            return Response({"message":"You are not enrolled in the course."})
+            if not is_enrolled_course:
+                return Response({"message":"You are not enrolled in the course or program."})
+            else:
+                return Response({"message":"You do not have permission to access this module."})
 
 
 class MediaDetailAPIView(generics.RetrieveAPIView):
@@ -328,19 +396,21 @@ class ModuleCreateAPIView(generics.CreateAPIView):
     serializer_class = ModuleSerialzer
     permission_classes = [IsAuthenticatedOrReadOnly, IsContentCreator] 
 
-    def perform_create(self, serializer):
+    #
+    def create(self, request, *args, **kwargs):
         date = datetime.now()
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             name = serializer.validated_data['name']
             course_name = serializer.validated_data['course']
             try:
                 course = Course.objects.get(name=course_name)
-            except ObjectDoesNotExist:
+            except Course.DoesNotExist:
                 return Response({"message": "course does not exist"})
-
+            
             if course.owner == self.request.user: 
                 Module.objects.create(owner=self.request.user, course=course, name=name, created_at=date)  
-                num_modules = course.number_of_modules #update number of modules field to reflect chnage
+                num_modules = course.number_of_modules          #update number of modules field to reflect chnage
                 num_modules += Decimal(1)
                 course.number_of_modules = num_modules
                 course.save()

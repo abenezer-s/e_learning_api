@@ -26,12 +26,10 @@ class Program(models.Model):
         return self.name
 
 class Module(models.Model):
-    owner = models.ForeignKey(User,default=None, on_delete=models.CASCADE, related_name='module_owner')
+    owner = models.ForeignKey(User, default=None, on_delete=models.CASCADE, related_name='module_owner')
     name = models.CharField(max_length=150, blank=False)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='under_course')
     created_at = models.DateField(blank=False)
-    completed = models.BooleanField(default=False)
-    completed_at = models.DateField(blank=False, default=None)
 
 
     def __str__(self) -> str:
@@ -58,3 +56,9 @@ class Application(models.Model):
     
     state = models.CharField(max_length=20, default=None, choices=status)
 
+class LearnerCompletion(models.Model):
+    learner = models.ForeignKey(User, on_delete=models.CASCADE)
+    module = models.ForeignKey(Module, default=None, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, default=None, on_delete=models.CASCADE)
+    program = models.ForeignKey(Program, default=None, on_delete=models.CASCADE)
+    completed_at = models.DateField()
