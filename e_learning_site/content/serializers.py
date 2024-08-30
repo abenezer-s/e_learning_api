@@ -10,6 +10,9 @@ class AddCourseSerializer(serializers.Serializer):
     course = serializers.CharField()
     program = serializers.CharField()
 
+class MarkAsCompleteSerializer(serializers.Serializer):
+    module = serializers.CharField()    
+
 class EnrollSerializer(serializers.Serializer):
     course = serializers.CharField()
     program = serializers.CharField()
@@ -36,7 +39,12 @@ class CourseSerialzer(serializers.ModelSerializer):
 class ModuleSerialzer(serializers.ModelSerializer):
     class Meta:
         model = Module
-        fields = '__all__'
+        fields = [
+            'owner ', 
+            'name ', 
+            'course ',
+            'completed '
+        ]
 
 class ApplicationSerialzer(serializers.ModelSerializer):
     class Meta:

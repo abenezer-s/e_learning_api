@@ -16,3 +16,10 @@ class IsLearner(BasePermission):
         except:
             return HttpResponse('usr is superuser')
 
+class IsLearnerOrContentCreater(BasePermission):
+    
+    def has_permission(self, request, view):
+        try:
+            return (request.user.userprofile.creator)  or (not (request.user.userprofile.creator))
+        except:
+            return HttpResponse('usr is superuser')

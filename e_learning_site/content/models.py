@@ -30,6 +30,9 @@ class Module(models.Model):
     name = models.CharField(max_length=150, blank=False)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='under_course')
     created_at = models.DateField(blank=False)
+    completed = models.BooleanField(default=False)
+    completed_at = models.DateField(blank=False, default=None)
+
 
     def __str__(self) -> str:
         return self.name

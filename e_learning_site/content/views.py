@@ -7,11 +7,57 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticate
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .permissions import IsContentCreator, IsLearner
+from .permissions import IsContentCreator, IsLearner, IsLearnerOrContentCreater
 from .models import *
 from user.models import CourseEnrollment, ProgramEnrollment, UserProfile
 from .serializers import *
 from decimal import Decimal
+
+class MarkAsComplete(APIView):
+    """
+    given the module NAME mark it as completed and update overal progress on the program or course.
+    """
+    permission_classes = [IsLearnerOrContentCreater]
+
+    def update_module(self, module_course, enrollment):
+        num_modules = module_course.number_of_modules
+        completed = enrollment.number_of_modules_completed
+        progress = (completed / num_modules) * 100
+        enrollment.progress = progress
+        enrollment.save()
+
+    def patch(self, request):
+        date = datetime.now()
+        serializer = MarkAsCompleteSerializer(data=request.data)
+        if serializer.is_valid():
+            module_name = serializer.validated_data['module']
+            user = self.request.user
+            user_profile = UserProfile.objects.get(user=user)
+            try:
+                module = Module.objects.get(name=module_name)
+            except Module.DoesNotExist:
+                return Response({"message":"module does not exist"})
+            
+            #update module
+            module.completed = True
+            module.completed_at = date
+            # check progress
+            module_course = module.course
+            try:
+                course_program = Program.objects.get(courses__name=module_course.name)
+            except Program.DoesNotExist:
+                # course not parrt of a program
+                try:
+                    enrollment = CourseEnrollment.objects.get(Q(learner=user_profile) & Q(course=module_course))
+                except CourseEnrollment.DoesNotExist:
+                    if user == module_course.owner:
+                        self.update_module(module_course, enrollment)
+                    else:
+                        return Response({"message":"You do not have permission to perform this action"})
+                
+                self.update_module(module_course, enrollment)
+                return Response({"message":"module marked as complet successfully"})
+                
 
 class ApplicationResponse(APIView):
     """
@@ -144,32 +190,32 @@ class Apply(APIView):
             if course_name != 'None':
                 try:
                     course = Course.objects.get(name=course_name)
-                except ObjectDoesNotExist:
+                except Course.DoesNotExist:
                     return Response({"message":"course not found"})
                 course_owner = course.owner
                 try:
                     learner_user = User.objects.get(username=learner)
-                except ObjectDoesNotExist:
+                except User.DoesNotExist:
                     return Response({"message":"User not found"})
                 try:
                     application = Application.objects.create(owner=course_owner, learner=learner_user,submitted_at=date, motivation_letter=motivation_letter, state='Pending')
-                except ObjectDoesNotExist:
+                except Application.DoesNotExist:
                     return Response({"message":"application not found"})
                 application.course.add(course)
                 return Response({"message":"successfully applied to course"})
             else:
                 try:
                     program = Program.objects.get(name=program_name)
-                except ObjectDoesNotExist:
+                except Program.DoesNotExist:
                     return Response({"message":"program not found"})
                 program_owner = program.owner
                 try:
                     learner_user = User.objects.get(username=learner)
-                except ObjectDoesNotExist:
+                except User.DoesNotExist:
                     return Response({"message":"User not found"})
                 try:
                     application = Application.objects.create(owner=program_owner, learner=learner_user,submitted_at=date, motivation_letter=motivation_letter, state='Pending')
-                except ObjectDoesNotExist:
+                except Application.DoesNotExist:
                     return Response({"message":"application not found"})
                 application.program.add(program)
                 return Response({"message":"successfully applied to program"})
@@ -225,6 +271,27 @@ class ModuleDetailAPIView(generics.RetrieveAPIView):
     queryset = Module.objects.all()
     serializer_class = ModuleSerialzer
     permission_classes = [IsAuthenticated]
+    lookup_field = 'name'
+    #check if the requester is enrolled or owns the module if so grant access
+    def get(self, request, *args, **kwargs):
+
+        module = self.get_object()
+        module_owner = module.owner
+        modules_course = module.course
+        requester = self.request.user
+        user_profile = UserProfile.objects.get(user=requester)
+            
+        try:
+            CourseEnrollment.objects.get(Q(course=modules_course) & Q(learner=user_profile))
+            isEnrolled = True
+        except CourseEnrollment.DoesNotExist:
+            isEnrolled = False
+        
+        if isEnrolled or (module_owner == requester):
+            return super().get(request, *args, **kwargs)
+        else:
+            return Response({"message":"You are not enrolled in the course."})
+
 
 class MediaDetailAPIView(generics.RetrieveAPIView):
     queryset = Media.objects.all()

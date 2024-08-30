@@ -3,7 +3,7 @@ from .views import *
 urlpatterns = [
     path('program/<str:name>/', ProgramDetailAPIView.as_view()),
     path('course/<str:name>/', CourseDetailAPIView.as_view()),
-    path('module/<int:pk>/', ModuleDetailAPIView.as_view()),
+    path('module/<str:name>/', ModuleDetailAPIView.as_view()),
     path('media/<int:pk>/', MediaDetailAPIView.as_view()),
     path('application/<int:pk>/', ApplicationDetailAPIView.as_view()),
 
@@ -14,6 +14,7 @@ urlpatterns = [
     path('media/create/', MediaCreateAPIView.as_view()),
     path('application/create/', ApplicationCreateAPIView.as_view()),
     path('apply/', Apply.as_view()),
+    path('mark_as_complete/', MarkAsComplete.as_view()),
 
     path('programs/', ProgramListAPIView.as_view()),
     path('courses/', CourseListAPIView.as_view(), name='courses-api'),

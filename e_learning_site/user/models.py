@@ -26,4 +26,4 @@ class CourseEnrollment(models.Model):
     course = models.ForeignKey(Course,on_delete=models.CASCADE)
     number_of_modules_completed = models.DecimalField(default=0, max_digits=3, decimal_places=1)
     date_of_enrollment = models.DateField()
-    progress = models.DecimalField(default=0,  max_digits=3, decimal_places=1)
+    progress = models.DecimalField(default=0,  max_digits=3, decimal_places=2)
