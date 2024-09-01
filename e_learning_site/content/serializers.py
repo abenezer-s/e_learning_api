@@ -4,19 +4,25 @@ from .models import *
 class ProgramSerialzer(serializers.ModelSerializer):
     class Meta:
         model = Program
-        fields = '__all__'
+        fields = [
+            "owner",
+            "name",
+            "number_of_modules",
+            "complete_within"
+        ]
 
 class LearnerCompletionSerializer(serializers.Serializer):
     module_name= serializers.CharField()
-    learner_username= serializers.CharField()
-        
+    learner_username= serializers.CharField()    
 
 class AddCourseSerializer(serializers.Serializer):
     course = serializers.CharField()
     program = serializers.CharField()
 
 class MarkAsCompleteSerializer(serializers.Serializer):
-    module = serializers.CharField()    
+    module = serializers.CharField()   
+    course_name = serializers.CharField()   
+    program_name = serializers.CharField()   
 
 class EnrollSerializer(serializers.Serializer):
     course = serializers.CharField()
@@ -40,7 +46,12 @@ class ApplicationResponseSerializer(serializers.Serializer):
 class CourseSerialzer(serializers.ModelSerializer):
     class Meta:
         model = Course
-        fields = '__all__'
+        fields = [
+            "owner",
+            "name",
+            "number_of_modules",
+            "complete_within",
+        ]
 
 class ModuleSerialzer(serializers.ModelSerializer):
     class Meta:

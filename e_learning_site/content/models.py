@@ -8,7 +8,7 @@ class Course(models.Model):
     name = models.CharField(max_length=150, blank=False)
     number_of_modules = models.DecimalField(default=0, max_digits=3, decimal_places=0)
     created_at = models.DateField(blank=False)
-
+    complete_within = models.DecimalField(blank=False, max_digits=2, default=None, decimal_places=0)      #number of weeks a learner has to finish content
     def __str__(self) -> str:
         return self.name
 
@@ -20,6 +20,7 @@ class Program(models.Model):
     name = models.CharField(max_length=150, blank=False)
     number_of_courses = models.DecimalField(default=0, max_digits=3, decimal_places=0)
     courses = models.ManyToManyField(Course, blank= True, default=None)
+    complete_within = models.DecimalField(blank=False, max_digits=2, default=None, decimal_places=0)      #number of weeks a learner has to finish content
 
     created_at = models.DateField(blank=False)
     def __str__(self) -> str:
@@ -58,7 +59,7 @@ class Application(models.Model):
 
 class LearnerCompletion(models.Model):
     learner = models.ForeignKey(User, on_delete=models.CASCADE)
-    module = models.ForeignKey(Module, default=None, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, default=None, on_delete=models.CASCADE)
-    program = models.ForeignKey(Program, default=None, on_delete=models.CASCADE)
+    module = models.ForeignKey(Module, null=True,default=None, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, null=True,default=None, on_delete=models.CASCADE)
+    program = models.ForeignKey(Program, null=True,default=None, on_delete=models.CASCADE)
     completed_at = models.DateField()

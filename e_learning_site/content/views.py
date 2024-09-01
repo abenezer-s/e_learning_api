@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.shortcuts import render, redirect
 from django.db.models import Q
 from rest_framework.exceptions import PermissionDenied
@@ -15,27 +15,32 @@ from decimal import Decimal
 
 class MarkComplete(APIView):
     """
-    Given the module name and learner username, mark the module as completed 
+    Given the module, course and program name and learner username(string "None" if not part of program), mark the module as completed 
     and update overal progress on the program or course.
     """
     permission_classes = [IsLearnerOrContentCreater]
 
-    def update_progress(self,learner, module, course_enrollment, program_enrollment=None):
+    def update_progress(self,learner, module, course_enrollment, program_enrollments=None):
+        
         date = datetime.now()
         course_enrollment.number_of_modules_completed += Decimal(1)
         module_course = course_enrollment.course
         num_modules = module_course.number_of_modules
         completed_modules = course_enrollment.number_of_modules_completed
 
+        cur_progress_course = course_enrollment.progress #current progress in course
         if course_enrollment.progress != 100:
-
+            #update course progress
             progress = (completed_modules / num_modules) * 100
             course_enrollment.progress = progress
-            cur_progress_course = course_enrollment.progress #current progress in course
+            cur_progress_course = course_enrollment.progress 
             course_enrollment.save()
-            #check if course is part of a program and update program progress if course is completed
-            if program_enrollment and (cur_progress_course == 100):
-                
+
+        #check if course is part of any program and update program progress if course is co7mpleted
+        if program_enrollments and (cur_progress_course == 100):
+
+            for program_enrollment in program_enrollments:
+                #update each program that conatians the course and  learner is enrolled in
                 program_enrollment.number_of_courses_completed += Decimal(1)
                 module_program = program_enrollment.program
                 num_courses = module_program.number_of_courses
@@ -54,18 +59,14 @@ class MarkComplete(APIView):
                         #learner has completed the course
                         LearnerCompletion.objects.create(learner=learner, module=module, completed_at=date)
                         return Response({"message":"program completed successfully!"})
-                    
-                else:
-                    return Response({"message":"program already completed"})
-                
-            else:
-                #learner has completed the module
-                LearnerCompletion.objects.create(learner=learner, module=module, completed_at=date)
-                return Response({"message":"module completed successfully!"})
-
+            
         else:
-            return Response({"message":"course already completed"})
-        #update program progress if part of a program
+            #learner has completed the module
+            LearnerCompletion.objects.create(learner=learner, module=module, completed_at=date)
+            return Response({"message":"module completed successfully!"})
+
+        
+        return Response({"message":"course already completed"})
 
     def patch(self, request):
         serializer = LearnerCompletionSerializer(data=request.data)
@@ -73,6 +74,7 @@ class MarkComplete(APIView):
             module_name = serializer.validated_data['module_name']
             learner_username = serializer.validated_data['learner_username']
             user = self.request.user
+            
             # get instances
             try:
                 learner = User.objects.get(username=learner_username)
@@ -86,32 +88,56 @@ class MarkComplete(APIView):
             except Module.DoesNotExist:
                 return Response({"message":"module does not exist"})
             
-            module_course = module.course   #course where the module belongs to
+            try:
+                module_course = Course.objects.get(name=module.course.name) #course where the module belongs to
+            except Module.DoesNotExist:
+                return Response({"message":"module's course does not exist"}) 
+            
             try:
                 course_enrollment = CourseEnrollment.objects.get(Q(learner=learner_profile) & Q(course=module_course))
                 is_enrolled_course = True          
             except CourseEnrollment.DoesNotExist:
                 is_enrolled_course = False
-            #if learner is enrolled or user is owner of module
+
+            #check deadline
+            date = datetime.now()
+            deadline = course_enrollment.deadline
+            within_deadline = True
+            if deadline:
+                within_deadline = deadline >= date
+
+            #if learner is within deadline and is enrolled or user is owner of module update
             if learner or module.owner:
 
-                if is_enrolled_course:# or user == module.owner:
+                if is_enrolled_course and within_deadline:
+                    
                     try:
-                        module_program = Program.objects.get(courses__name=module_course.name)
+                        #course could be part of multiple programs
+                        module_programs = Program.objects.filter(courses__name=module_course.name)    
                     except Program.DoesNotExist:
-                        #course not part of program
+                        #course not part of any program
                         update = self.update_progress(learner, module, course_enrollment)
                         return update
-                    try:
-                        program_enrollment = ProgramEnrollment.objects.get(Q(learner=learner_profile) & Q(program=module_program))
-                    except ProgramEnrollment.DoesNotExist:
-                        return Response({"message":"not enrolled in program"})
-                    #course is part of a program
-                    update = self.update_progress(learner, module, course_enrollment, program_enrollment=program_enrollment)
+                    
+                    enrollment_list = []
+                    for program in module_programs:
+                        print(program)
+                        try:
+                            program_enrollment = ProgramEnrollment.objects.get(learner=learner_profile, program=program)
+                            print('program enromt',program_enrollment.program)
+                        except ProgramEnrollment.DoesNotExist:
+                            return Response({"message":"not enrolled in program"})
+                        enrollment_list.append(program_enrollment)
+
+                    #course is part of a program    
+                    update = self.update_progress(learner, module, course_enrollment, program_enrollments=enrollment_list)
                     return update
                 
                 else:
-                    return Response({"message":"you do not have permisssion to perform this action"})
+                    if not is_enrolled_course:
+                        return Response({"message":"you do not have permisssion to perform this action. Not enrolled."})
+                    else:
+                        return Response({"message":"you can not perform this action. Deadline has passed."})
             else:
                     return Response({"message":"you do not have permisssion to perform this action"})
                 
@@ -164,6 +190,7 @@ class ApplicationResponse(APIView):
             return Response({"message":"Application to program rejected succesfully"})
 
     def accept(self, learner, program_name, course_name, request, date):
+        #response for course  
         if course_name != 'None':
             try:
                 learner_obj = User.objects.get(username=learner)
@@ -182,8 +209,14 @@ class ApplicationResponse(APIView):
             except ObjectDoesNotExist:
                 return Response({"message":"Application not found"})
 
-            
-            CourseEnrollment.objects.create(learner=learner_profile, course=course, date_of_enrollment=date)
+            #enroll learner to course with appropriate deadlines if there are any
+            num_weeks = course.complete_within
+            if num_weeks:
+                deadline = date + timedelta(weeks=num_weeks)
+                CourseEnrollment.objects.create(learner=learner_profile, course=course, date_of_enrollment=date, deadline=deadline)
+            else:
+                CourseEnrollment.objects.create(learner=learner_profile, course=course, date_of_enrollment=date)
+                
             return Response({"message":"Application to program accepted succesfully"})
 
         #response for program                
@@ -204,8 +237,15 @@ class ApplicationResponse(APIView):
                 application.save()
             except ObjectDoesNotExist:
                 return Response({"message":"Application not found"})
+            
+            #enroll learner to program with appropriate deadlines if there are any
+            num_weeks = program.complete_within
+            if num_weeks:
+                deadline = date + timedelta(weeks=num_weeks)
+                ProgramEnrollment.objects.create(learner=learner_profile, program=program, date_of_enrollment=date, deadline=deadline)
+            else:
+                ProgramEnrollment.objects.create(learner=learner_profile, program=program, date_of_enrollment=date)
 
-            ProgramEnrollment.objects.create(learner=learner_profile, program=program, date_of_enrollment=date) 
             return Response({"message":"Application to program accepted succesfully"})
 
     def post(self, request):
@@ -380,23 +420,24 @@ class ProgramCreateAPIView(generics.CreateAPIView):
     
     def perform_create(self, serializer):
         #assign user as an owner
-        serializer.save(owner=self.request.user)
+        date = datetime.now()
+        serializer.save(owner=self.request.user, created_at=date)
 
-    
 class CourseCreateAPIView(generics.CreateAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseSerialzer
     permission_classes = [IsAuthenticatedOrReadOnly, IsContentCreator] 
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        date = datetime.now()
+        serializer.save(owner=self.request.user, created_at=date)
 
 class ModuleCreateAPIView(generics.CreateAPIView):
     queryset = Module.objects.all()
     serializer_class = ModuleSerialzer
     permission_classes = [IsAuthenticatedOrReadOnly, IsContentCreator] 
 
-    #
+    # create  module assign it to a course and update course info
     def create(self, request, *args, **kwargs):
         date = datetime.now()
         serializer = self.get_serializer(data=request.data)

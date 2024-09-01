@@ -11,7 +11,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'edit_url',
             'name',
             'image',
-            'role',
             'courses', 
             'programs'
         ]

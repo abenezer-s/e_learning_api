@@ -20,10 +20,24 @@ class ProgramEnrollment(models.Model):
     number_of_courses_completed = models.DecimalField(default=0, max_digits=3, decimal_places=0)
     date_of_enrollment = models.DateField()
     progress = models.DecimalField(default=0,  max_digits=5, decimal_places=2)
-
+    status_choices = [
+        ('in progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('in complete', 'In Complete'),
+    ]
+    status = models.CharField(max_length=11, default='in porgress', choices=status_choices)
+    deadline = models.DateField(blank=False, default=None)
+    
 class CourseEnrollment(models.Model):
     learner = models.ForeignKey(UserProfile,on_delete=models.CASCADE)
     course = models.ForeignKey(Course,on_delete=models.CASCADE)
     number_of_modules_completed = models.DecimalField(default=0, max_digits=3, decimal_places=0)
     date_of_enrollment = models.DateField()
     progress = models.DecimalField(default=0,  max_digits=5, decimal_places=2)
+    status_choices = [
+        ('in progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('in complete', 'In Complete'),
+    ]
+    status = models.CharField(max_length=11, default='in porgress', choices=status_choices)
+    deadline = models.DateField(blank=False, default=None)
