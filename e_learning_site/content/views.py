@@ -370,32 +370,55 @@ class ModuleDetailAPIView(generics.RetrieveAPIView):
     serializer_class = ModuleSerialzer
     permission_classes = [IsAuthenticated]
     lookup_field = 'name'
+
     #check if the requester is enrolled or owns the module if so grant access
     def get(self, request, *args, **kwargs):
-
+        is_part_prog = None
         module = self.get_object()
         module_owner = module.owner
         modules_course = module.course
-        course_program = Program.objects.get(course=modules_course)
+        #check if course blongs to a program
+        try:
+            #course might be part of multiple programs
+            course_programs = Program.objects.filter(courses=modules_course)
+            is_part_prog = True
+        except Program.DoesNotExist:
+            is_part_prog = False
+
         requester = self.request.user
         user_profile = UserProfile.objects.get(user=requester)
-            
+        
+        #check users enrollment in course
         try:
             CourseEnrollment.objects.get(Q(course=modules_course) & Q(learner=user_profile))
             is_enrolled_course = True
         except CourseEnrollment.DoesNotExist:
             is_enrolled_course = False
-        try:
-            ProgramEnrollment.objects.get(Q(program=course_program) & Q(learner=user_profile))
-            is_enrolled_program = True
-        except ProgramEnrollment.DoesNotExist:
-            is_enrolled_program = False
 
-        #grant access
+        #check if user is enrolled to any program that conatains the course
+        is_enrolled_program = None
+        enroll_list = []
+        if is_part_prog:
+            # if user enrolled into atleast one program that conatins the module's course break and assign user as enrolled.
+            for program in course_programs:
+                try:
+                    prog_enrollment = ProgramEnrollment.objects.get(Q(program=program) & Q(learner=user_profile))
+
+                except ProgramEnrollment.DoesNotExist:
+                    is_enrolled_program = False
+                
+                else:
+                    is_enrolled_program = True
+                    enroll_list.append(prog_enrollment)
+                    break
+
+        #grant access if enrolled to either the course or the program or user owns the moudle
         if is_enrolled_course or is_enrolled_program or (module_owner == requester):
             return super().get(request, *args, **kwargs)
         else:
             if not is_enrolled_course:
+                if user_profile.creator:
+                    return Response({"message":"Access Denied. You do not own the course or program this module belongs to."})    
                 return Response({"message":"You are not enrolled in the course or program."})
             else:
                 return Response({"message":"You do not have permission to access this module."})

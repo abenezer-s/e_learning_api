@@ -7,7 +7,7 @@ class ProgramSerialzer(serializers.ModelSerializer):
         fields = [
             "owner",
             "name",
-            "number_of_modules",
+            "number_of_courses",
             "complete_within"
         ]
 
