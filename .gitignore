@@ -7,3 +7,4 @@ pyvenv.cfg
 tests
 tests.save
 *.pyc
+**/media/

@@ -16,6 +16,7 @@ urlpatterns = [
     path('application/create/', ApplicationCreateAPIView.as_view()),
     path('apply/', Apply.as_view()),
     path('mark_complete/', MarkComplete.as_view()),
+    path('upload/', AddMedia.as_view(), name='upload-api'),
     #list
     path('programs/', ProgramListAPIView.as_view()),
     path('courses/', CourseListAPIView.as_view(), name='courses-api'),

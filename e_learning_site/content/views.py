@@ -12,6 +12,7 @@ from .models import *
 from user.models import CourseEnrollment, ProgramEnrollment, UserProfile
 from .serializers import *
 from decimal import Decimal
+from rest_framework.parsers import MultiPartParser, FormParser
 
 class MarkComplete(APIView):
     """
@@ -51,8 +52,9 @@ class MarkComplete(APIView):
                     program_enrollment.progress = progress
                     cur_progress_program = program_enrollment.progress #current progress in program
                     program_enrollment.save()
+                    #
                     if cur_progress_program == 100:
-                        #learner has completed the program
+                        #learner has completed the program after finishing current course 
                         LearnerCompletion.objects.create(learner=learner, module=module, course=module_course, program=module_program, completed_at=date)
                         return Response({"message":"course and program completed successfully!"})
                     else:
@@ -321,8 +323,6 @@ class Apply(APIView):
         print(serializer.errors)
         return Response({"message":"invalid serializer"})
             
-class Enroll(APIView):
-    pass
                
 class AddCourseAPIView(APIView):
    """
@@ -350,7 +350,39 @@ class AddCourseAPIView(APIView):
                     return Response({"message": "you do not have permission to perform this action"})
             else:
                return Response({"message": "course or program does not exist"})
-               
+
+class AddMedia(APIView):
+    """
+    Given a module name and a path to a file, add media to a module if module exists
+    and request is from owner.
+    """
+    parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [IsContentCreator]
+
+    def post(self, request):
+
+        serializer = AddMediaSerializer(data=request.data)
+        if serializer.is_valid():
+            file = serializer.validated_data["media"]
+            module_name = serializer.validated_data["module_name"]
+            description = serializer.validated_data["description"]
+            user = request.user
+            try:
+                module = Module.objects.get(name=module_name)
+            except Module.DoesNotExist:
+                return Response({"message":"Can not add media to module. Module does not exist."})
+        
+            #create media instance if user owns the module
+            if user == module.owner:
+                Media.objects.create(owner=user, file=file, description=description, module=module)
+                return Response({"message":"Added media to module successfully."})
+            else: 
+                return Response({"message":"Can not add media to module. You do not have permission."})
+        else:
+            e = serializer.errors
+            return Response({"message":"Invalid serializer.",
+                             "error":e})
+
 #detail views
 class ProgramDetailAPIView(generics.RetrieveAPIView):
     queryset = Program.objects.all()

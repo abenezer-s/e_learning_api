@@ -29,6 +29,7 @@ class Program(models.Model):
 class Module(models.Model):
     owner = models.ForeignKey(User, default=None, on_delete=models.CASCADE, related_name='module_owner')
     name = models.CharField(max_length=150, blank=False)
+    content = models.TextField(default="default content", blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='under_course')
     created_at = models.DateField(blank=False)
 
@@ -40,7 +41,7 @@ class Media(models.Model):
     owner = models.ForeignKey(User,default=None, on_delete=models.CASCADE, related_name='media_owner')
     file = models.FileField(upload_to='media/')
     description = models.CharField(max_length=255, blank=True)
-    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='module')
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='module_media')
                                    
 class Application(models.Model):
     owner = models.ForeignKey(User,default=None, on_delete=models.CASCADE, related_name='program_course_owner') #program/course owner
@@ -58,6 +59,10 @@ class Application(models.Model):
     state = models.CharField(max_length=20, default=None, choices=status)
 
 class LearnerCompletion(models.Model):
+    """
+    Model to keep track of a learner's completion of programs and courses.
+    Therefore making them eligible for a certificate if in this model
+    """
     learner = models.ForeignKey(User, on_delete=models.CASCADE)
     module = models.ForeignKey(Module, null=True,default=None, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, null=True,default=None, on_delete=models.CASCADE)
