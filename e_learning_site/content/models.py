@@ -58,6 +58,32 @@ class Application(models.Model):
     
     state = models.CharField(max_length=20, default=None, choices=status)
 
+class Test(models.Model):
+    """
+    a model to store tests for a module with optional time limits.
+    """
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, default=None)
+    description = models.TextField(blank=False)
+    time_limit = models.DecimalField(default=None, blank=True, max_digits=3, decimal_places=0)
+    pass_score = models.DecimalField(default=50, blank=True, max_digits=3, decimal_places=0)
+    created_at = models.DateField(blank=True, default=None)
+
+class Answer(models.Model):
+    """
+    potential answer to a question
+    """
+    choice_number = models.DecimalField(default=None, blank=False, max_digits=1, decimal_places=0)
+    value = models.TextField(blank=False)
+    
+class  Question(models.Model):
+    """
+    A model used to model a question which is part of the test model. 
+    Must have muliple potetnial answers if question is multiple choice( multi=True)
+    """
+    test = models.ForeignKey(Test, default=None, on_delete=models.CASCADE, related_name='test_question')
+    multi = models.BooleanField(blank=False)     #feild to determine wheter the wuerstion is multiple choice or fill in blank
+    answer = models.OneToOneField(Answer, on_delete=models.CASCADE, related_name='choices') 
+
 class LearnerCompletion(models.Model):
     """
     Model to keep track of a learner's completion of programs and courses.

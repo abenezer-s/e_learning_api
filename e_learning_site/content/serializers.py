@@ -75,10 +75,50 @@ class ModuleSerialzer(serializers.ModelSerializer):
     class Meta:
         model = Module
         fields = [
+            'id',
             'name', 
             'course',
             'content',
             'module_media',
+        ]
+class AnswerSerializer(serializers.ModelSerializer):
+     class Meta:
+         model = Answer
+         fields = [
+            'choice_number',
+            'value',
+         ]
+
+class QuestionSerializer(serializers.ModelSerializer):
+    answer = serializers.CharField(write_only=True)
+    choices = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Question
+        fields =[
+            "test",
+            "multi",
+            "answer",
+            "choices"
+        ]
+
+        def get_question_answer(sefl, obj):
+            if obj.multi:
+                return AnswerSerializer(obj.Answer_set.all(), read_only=True, many=True).data
+            else:
+                return None
+
+class TestSerialzer(serializers.ModelSerializer):
+    test_question = QuestionSerializer(read_only=True, many=True)
+    module_id = serializers.CharField(write_only=True)
+    class Meta:
+        model = Test
+        fields =[
+            "description",
+            "time_limit",
+            "pass_score",
+            "module_id",
+            "test_question"
         ]
 
 class ApplicationSerialzer(serializers.ModelSerializer):

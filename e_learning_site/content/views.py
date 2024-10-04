@@ -14,6 +14,7 @@ from .serializers import *
 from decimal import Decimal
 from rest_framework.parsers import MultiPartParser, FormParser
 
+
 class MarkComplete(APIView):
     """
     Given the module, course and program name and learner username(string "None" if not part of program), mark the module as completed 
@@ -322,8 +323,7 @@ class Apply(APIView):
             
         print(serializer.errors)
         return Response({"message":"invalid serializer"})
-            
-               
+                   
 class AddCourseAPIView(APIView):
    """
    Providing course and program name as JSON, add course to the program if user owns both the course and the program
@@ -396,19 +396,17 @@ class CourseDetailAPIView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     lookup_field = 'name'
 
-class ModuleDetailAPIView(generics.RetrieveAPIView):
+def isEnrolledOrLearner(module, request, obj):
+        """
+        A helper function to determine whether a user 
+        is enrolled in a program or a course the module belongs to.
+        """
 
-    queryset = Module.objects.all()
-    serializer_class = ModuleSerialzer
-    permission_classes = [IsAuthenticated]
-    lookup_field = 'name'
-
-    #check if the requester is enrolled or owns the module if so grant access
-    def get(self, request, *args, **kwargs):
         is_part_prog = None
-        module = self.get_object()
+        module = module
         module_owner = module.owner
         modules_course = module.course
+
         #check if course blongs to a program
         try:
             #course might be part of multiple programs
@@ -417,7 +415,7 @@ class ModuleDetailAPIView(generics.RetrieveAPIView):
         except Program.DoesNotExist:
             is_part_prog = False
 
-        requester = self.request.user
+        requester = request.user
         user_profile = UserProfile.objects.get(user=requester)
         
         #check users enrollment in course
@@ -429,7 +427,6 @@ class ModuleDetailAPIView(generics.RetrieveAPIView):
 
         #check if user is enrolled to any program that conatains the course
         is_enrolled_program = None
-        enroll_list = []
         if is_part_prog:
             # if user enrolled into atleast one program that conatins the module's course break and assign user as enrolled.
             for program in course_programs:
@@ -438,24 +435,65 @@ class ModuleDetailAPIView(generics.RetrieveAPIView):
 
                 except ProgramEnrollment.DoesNotExist:
                     is_enrolled_program = False
+                    continue
                 
                 else:
                     is_enrolled_program = True
-                    enroll_list.append(prog_enrollment)
                     break
 
         #grant access if enrolled to either the course or the program or user owns the moudle
+        obj = obj
         if is_enrolled_course or is_enrolled_program or (module_owner == requester):
-            return super().get(request, *args, **kwargs)
+            return Response({"message": "Allowed"})
         else:
             if not is_enrolled_course:
+                
                 if user_profile.creator:
-                    return Response({"message":"Access Denied. You do not own the course or program this module belongs to."})    
-                return Response({"message":"You are not enrolled in the course or program."})
+                    message = f"Access Denied. You do not own the course or program this {obj} belongs to."
+                    return Response({"message": message})
+                message = "You are not enrolled in the course or program."  
+                return Response({"message": message})
             else:
-                return Response({"message":"You do not have permission to access this module."})
+                message = f"You do not have permission to access this {obj}."
+                return Response({"message":message})
+            
+class ModuleDetailAPIView(generics.RetrieveAPIView):
 
+    queryset = Module.objects.all()
+    serializer_class = ModuleSerialzer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'id'
+    #check if the requester is enrolled or owns the module if so grant access
+    def get(self, request, *args, **kwargs):
+        
+        module = self.get_object()
 
+        respone = isEnrolledOrLearner(module, request, 'module')
+        
+        #grant access if enrolled to either the course or the program or user owns the moudle
+        if respone.data['message'] == 'Allowed':
+            return super().get(request, *args, **kwargs)
+        else:
+            return respone
+
+class TestDetailAPIView(generics.RetrieveAPIView):
+    queryset = Application.objects.all()
+    serializer_class = TestSerialzer
+    permission_classes = [IsAuthenticated]
+
+    #can a  see the test if user is learner that is enrolled or owns the module
+    def get(self, request, *args, **kwargs):
+        
+        test = self.get_object()
+        module = test.module
+        respone = isEnrolledOrLearner(module, request, 'test')
+        
+        #grant access if enrolled to either the course or the program or user owns the moudle
+        if respone.data['message'] == 'Allowed':
+            return super().get(request, *args, **kwargs)
+        else:
+            return respone
+    
 class MediaDetailAPIView(generics.RetrieveAPIView):
     queryset = Media.objects.all()
     serializer_class = ApplicationSerialzer 
@@ -514,6 +552,33 @@ class ModuleCreateAPIView(generics.CreateAPIView):
             else:
                 return Response({"message": "you do not have permission to perform this action"})
 
+class TestCreateAPIView(generics.CreateAPIView):
+
+    queryset = Test.objects.all()
+    serializer_class = TestSerialzer
+    permission_classes = [IsContentCreator] 
+
+    # create  Test assign it to a module
+    def create(self, request, *args, **kwargs):
+        date = datetime.now()
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            description = serializer.validated_data['description']
+            time_limit = serializer.validated_data['time_limit']
+            pass_score = serializer.validated_data['pass_score']
+            id = request.data.pop('module_id', None)
+            try:
+                module = Module.objects.get(id=int(id))
+            except Module.DoesNotExist:
+                return Response({"message": "module does not exist"})
+            
+            if module.owner == self.request.user: 
+                Test.objects.create(module=module, description=description,time_limit=time_limit, pass_score=pass_score, created_at=date)  
+                return Response({"message": "test created succesfully"})
+            else:
+                return Response({"message": "you do not have permission to perform this action"})
+        else:
+            return Response({"message": "Invalid serializer."})
 
 class MediaCreateAPIView(generics.CreateAPIView):
     queryset = Media.objects.all()

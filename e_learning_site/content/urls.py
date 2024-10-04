@@ -4,7 +4,7 @@ urlpatterns = [
     #detail
     path('program/<str:name>/', ProgramDetailAPIView.as_view()),
     path('course/<str:name>/', CourseDetailAPIView.as_view()),
-    path('module/<str:name>/', ModuleDetailAPIView.as_view()),
+    path('module/<int:id>/', ModuleDetailAPIView.as_view()),
     path('media/<int:pk>/', MediaDetailAPIView.as_view()),
     path('application/<int:pk>/', ApplicationDetailAPIView.as_view()),
     #create
@@ -12,6 +12,7 @@ urlpatterns = [
     path('add/course/', AddCourseAPIView.as_view(), name='add-course-view'),
     path('create/course/', CourseCreateAPIView.as_view()),
     path('create/module/', ModuleCreateAPIView.as_view()),
+    path('create/test/', TestCreateAPIView.as_view()),
     path('media/create/', MediaCreateAPIView.as_view()),
     path('application/create/', ApplicationCreateAPIView.as_view()),
     path('apply/', Apply.as_view()),
@@ -36,5 +37,7 @@ urlpatterns = [
     path('module/<int:pk>/delete/', ModuleDestroyAPIView.as_view()),
     path('media/<int:pk>/delete/', MediaDestroyAPIView.as_view()),
     path('application/<int:pk>/delete/', ApplicationDestroyAPIView.as_view()),
+
+
 
 ]
