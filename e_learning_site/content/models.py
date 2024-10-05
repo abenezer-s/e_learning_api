@@ -62,10 +62,23 @@ class Test(models.Model):
     """
     a model to store tests for a module with optional time limits.
     """
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
     module = models.ForeignKey(Module, on_delete=models.CASCADE, default=None)
     description = models.TextField(blank=False)
     time_limit = models.DecimalField(default=None, blank=True, max_digits=3, decimal_places=0)
     pass_score = models.DecimalField(default=50, blank=True, max_digits=3, decimal_places=0)
+    num_of_questions = models.DecimalField(max_digits=3, decimal_places=0, default=0)
+    created_at = models.DateField(blank=True, default=None)
+    
+class  Question(models.Model):
+    """
+    A model used to model a question which is part of the test model. 
+    Must have muliple potetnial answers if question is multiple choice( multi=True)
+    """
+    test = models.ForeignKey(Test, default=None, on_delete=models.CASCADE, related_name='test_question')
+    value = models.TextField(default=None, blank=False)
+    multi = models.BooleanField(blank=False)     #feild to determine wheter the question is multiple choice or fill in blank
+    answer = models.TextField(blank=False)
     created_at = models.DateField(blank=True, default=None)
 
 class Answer(models.Model):
@@ -74,15 +87,17 @@ class Answer(models.Model):
     """
     choice_number = models.DecimalField(default=None, blank=False, max_digits=1, decimal_places=0)
     value = models.TextField(blank=False)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='choices', default=None)
+    created_at = models.DateField(default=None)
     
-class  Question(models.Model):
+class Grades(models.Model):
     """
-    A model used to model a question which is part of the test model. 
-    Must have muliple potetnial answers if question is multiple choice( multi=True)
+    model to store grades of learners.
     """
-    test = models.ForeignKey(Test, default=None, on_delete=models.CASCADE, related_name='test_question')
-    multi = models.BooleanField(blank=False)     #feild to determine wheter the wuerstion is multiple choice or fill in blank
-    answer = models.OneToOneField(Answer, on_delete=models.CASCADE, related_name='choices') 
+    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='test_grade')
+    learner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='learner_grade')
+    grade = models.DecimalField(blank=False, max_digits=3, decimal_places=2)
+    passed = models.BooleanField(default=None)
 
 class LearnerCompletion(models.Model):
     """

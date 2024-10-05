@@ -82,31 +82,35 @@ class ModuleSerialzer(serializers.ModelSerializer):
             'module_media',
         ]
 class AnswerSerializer(serializers.ModelSerializer):
+     question_id = serializers.CharField(write_only=True)
      class Meta:
          model = Answer
          fields = [
             'choice_number',
             'value',
+            'question_id'
          ]
 
 class QuestionSerializer(serializers.ModelSerializer):
     answer = serializers.CharField(write_only=True)
     choices = serializers.SerializerMethodField()
-
+    test_id = serializers.CharField(write_only=True)
+    
     class Meta:
         model = Question
         fields =[
-            "test",
+            "test_id",
+            "value",
             "multi",
             "answer",
             "choices"
         ]
 
-        def get_question_answer(sefl, obj):
-            if obj.multi:
-                return AnswerSerializer(obj.Answer_set.all(), read_only=True, many=True).data
-            else:
-                return None
+    def get_choices(self, obj):
+        if obj.multi:
+            return AnswerSerializer(obj.choices.all(), read_only=True, many=True).data
+        else:
+            return None
 
 class TestSerialzer(serializers.ModelSerializer):
     test_question = QuestionSerializer(read_only=True, many=True)

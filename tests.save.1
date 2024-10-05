@@ -1,0 +1,113 @@
+create user
+{
+    	"username":"name1",
+       	"first_name":"name1",
+       	"last_name":"name1",
+       	"email":"name@gmail.com",
+       	"password":"password"
+
+}
+
+users
+{
+	"username": "name1",
+	"password": "password"
+}
+
+{
+	"username": "name2",
+	"password": "password"
+}
+
+Add course to program
+{
+	"course": "course_program_abenezr",
+	"program": "program_abenezr"
+}
+
+{
+	"course": "user1_course3",
+	"program": "user1_prog3"
+}
+
+Add media to module
+{
+	"media": "/home/abe/Pictures/sample_img.png",
+	"module": "module 2",
+	"description": "sample image for module."
+}
+
+create Test
+{
+	"description":"sample test description."
+       "time_limit": 60
+	"pass_score": 70
+	"module_id": 10
+}
+
+Test applying
+{
+	"learner": "name2",
+	"motivation_letter": "I love learning boss. please boss",
+	"program_name": "None",
+	"course_name": "user1_course1"
+}
+{
+	"learner": "name2",
+	"motivation_letter": "I love programs. please boss accept",
+	"program_name": "user1_prog2",
+	"course_name": "None"
+}
+
+
+
+Test application response api
+1)course
+{
+	"learner": "name2",
+	"course_name": "user1_course1",
+	"program_name": "None",
+	"response": "Accept"
+}
+
+
+
+{
+	"learner": "name2",
+	"course_name": "user1_course1",
+	"program_name": "None",
+	"response": "Reject"
+}
+
+
+
+
+2)program
+{
+	"learner": "name2",
+	"course_name": "None",
+	"program_name": "user1_prog2",
+	"response": "Accept"
+}
+{
+	"learner": "name2",
+	"course_name": "None",
+	"program_name": "user1_prog2",
+	"response": "Reject"
+}
+
+
+
+
+
+test update progress
+{
+	"module_name":"module 2",
+	"learner_username":"name2",
+	"course_name":"user1_course1",
+	"program_name":"program_time_limit"
+}
+{
+        "module_name":"module 2",
+        "learner_username":"name2"
+}
