@@ -51,6 +51,7 @@ urlpatterns = [
     path('media/<int:pk>/delete/', MediaDestroyAPIView.as_view()),
     path('application/<int:pk>/delete/', ApplicationDestroyAPIView.as_view()),
 
-
+    #submit answers for a test
+    path('tests/<int:test_id>/submit/<int:learner_id>/', SubmitAnswersAPIView.as_view(), name='submit-test'),
 
 ]

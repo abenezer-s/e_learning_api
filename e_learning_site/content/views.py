@@ -396,7 +396,7 @@ class CourseDetailAPIView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     lookup_field = 'name'
 
-def isEnrolledOrLearner(module, request, obj):
+def isEnrolledOrOwner(module, request, obj):
         """
         A helper function to determine whether a user 
         is enrolled in a program or a course the module belongs to.
@@ -468,7 +468,7 @@ class ModuleDetailAPIView(generics.RetrieveAPIView):
         
         module = self.get_object()
 
-        response = isEnrolledOrLearner(module, request, 'module')
+        response = isEnrolledOrOwner(module, request, 'module')
         
         #grant access if enrolled to either the course or the program or user owns the moudle
         if response.data['message'] == 'Allowed':
@@ -486,7 +486,7 @@ class TestDetailAPIView(generics.RetrieveAPIView):
         
         test = self.get_object()
         module = test.module
-        respone = isEnrolledOrLearner(module, request, 'test')
+        respone = isEnrolledOrOwner(module, request, 'test')
         
         #grant access if enrolled to either the course or the program or user owns the moudle
         if respone.data['message'] == 'Allowed':
@@ -505,7 +505,7 @@ class QuestionDetailAPIView(generics.RetrieveAPIView):
         question = self.get_object()
         test = question.test
         module = test.module
-        respone = isEnrolledOrLearner(module, request, 'question')
+        respone = isEnrolledOrOwner(module, request, 'question')
         
         #grant access if enrolled to either the course or the program or user owns the moudle
         if respone.data['message'] == 'Allowed':
@@ -524,7 +524,7 @@ class AnswerDetailAPIView(generics.RetrieveAPIView):
         question = answer.question
         test = question.test
         module = test.module
-        respone = isEnrolledOrLearner(module, request, 'answer')
+        respone = isEnrolledOrOwner(module, request, 'answer')
         
         #grant access if enrolled to either the course or the program or user owns the moudle
         if respone.data['message'] == 'Allowed':
@@ -699,17 +699,22 @@ class SubmitAnswersAPIView(APIView):
         
         try:
             test = Test.objects.get(id=test_id)
+        except (Test.DoesNotExist):
+            return Response({"error": "Test not found"}, status=status.HTTP_404_NOT_FOUND)
+        try:
             learner = User.objects.get(id=learner_id)
-        except (Test.DoesNotExist, User.DoesNotExist):
-            return Response({"error": "Test or learner not found"}, status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            return Response({"error": "learner not found"}, status=status.HTTP_404_NOT_FOUND)
+        
         module = test.module
-        response = isEnrolledOrLearner(module, request, "test")
-        if response.data['message'] == 'Allowed':
+        response = isEnrolledOrOwner(module, request, "test")
+        if response.data['message'] == 'Allowed'  and (learner == request.user):
             # Assume the request data contains the answers for each question
             answers = request.data.get('answers', [])
             correct_count = 0
             questions_count = test.num_of_questions
 
+            #check answers' validity
             for answer_data in answers:
                 try:
                     question = Question.objects.get(id=answer_data['question_id'])
@@ -720,24 +725,20 @@ class SubmitAnswersAPIView(APIView):
                 is_correct = (submitted_ans == question.answer)
 
                 # Save the learner's answer
-                #LearnerAnswer.objects.create(
-                #    learner=learner,
-                #    question=question,
-                #    selected_answer=selected_answer,
-                #    is_correct=is_correct
-                #)
+                LearnerAnswer.objects.create(learner=learner, question=question, answer=submitted_ans, correct=is_correct)
 
                 if is_correct:
                     correct_count += 1
 
             # Calculate the grade percentage
-            grade = (correct_count / questions_count) * 100 if questions_count > 0 else 0
+            grade = round(float(correct_count) / float(questions_count), 2) * 100 if questions_count > 0 else 0
+            
             if grade >= test.pass_score:
                 #update grade records
-                pass
+                Grade.objects.create(test=test, learner=learner,grade=grade, passed=True)
             else:
                 #update grade records
-                pass
+                Grade.objects.create(test=test, learner=learner,grade=grade, passed=False)
 
             return Response({
                 "learner": learner.first_name,
@@ -745,7 +746,11 @@ class SubmitAnswersAPIView(APIView):
                 "total_questions": questions_count,
                 "grade": grade
             }, status=status.HTTP_200_OK)
-    
+        else:
+            return  Response({
+                "message":"can not perform this action."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
 class MediaCreateAPIView(generics.CreateAPIView):
     queryset = Media.objects.all()
     serializer_class = ApplicationSerialzer

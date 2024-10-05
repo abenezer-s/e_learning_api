@@ -89,15 +89,24 @@ class Answer(models.Model):
     value = models.TextField(blank=False)
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='choices', default=None)
     created_at = models.DateField(default=None)
-    
-class Grades(models.Model):
+
+class Grade(models.Model):
     """
     model to store grades of learners.
     """
     test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='test_grade')
     learner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='learner_grade')
-    grade = models.DecimalField(blank=False, max_digits=3, decimal_places=2)
+    grade = models.DecimalField(blank=False, max_digits=5, decimal_places=2)
     passed = models.BooleanField(default=None)
+
+class LearnerAnswer(models.Model):
+    """
+    model to keep track of learner answers.
+    """
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    learner = models.ForeignKey(User, on_delete=models.CASCADE)
+    answer = models.TextField()
+    correct = models.BooleanField()
 
 class LearnerCompletion(models.Model):
     """

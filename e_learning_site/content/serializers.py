@@ -118,6 +118,7 @@ class TestSerialzer(serializers.ModelSerializer):
     class Meta:
         model = Test
         fields =[
+            "id",
             "description",
             "time_limit",
             "pass_score",

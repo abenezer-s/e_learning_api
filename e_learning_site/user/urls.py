@@ -11,7 +11,7 @@ urlpatterns = [
     path('<int:pk>/edit/',  UserProfileUpdateAPIView.as_view(), name='UserProfile-update-api-view'),
     path('<int:pk>/delete/',  UserProfileDestroyAPIView.as_view(), name='UserProfile-delete-api-view'),
 
-    path('', UserListAPIView.as_view(), name='users-api'),
+    path('users/', UserListAPIView.as_view(), name='users-api'),
     path('users/<int:pk>/', UserDetailAPIView.as_view(), name='user-detail-api-view'),
     path('users/<int:pk>/edit/',  UserUpdateAPIView.as_view(), name='user-update-api-view'),
     path('users/<int:pk>/delete/',  UserDestroyAPIView.as_view(), name='user-delete-api-view'),
