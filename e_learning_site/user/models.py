@@ -37,7 +37,7 @@ class CourseEnrollment(models.Model):
     status_choices = [
         ('in progress', 'In Progress'),
         ('completed', 'Completed'),
-        ('in complete', 'In Complete'),
+        ('incomplete', 'InComplete'),
     ]
     status = models.CharField(max_length=11, default='in porgress', choices=status_choices)
     deadline = models.DateField(blank=False, default=None)

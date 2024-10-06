@@ -22,7 +22,7 @@ urlpatterns = [
     path('create/media/', MediaCreateAPIView.as_view()),
     path('create/application/', ApplicationCreateAPIView.as_view()),
     path('apply/', Apply.as_view()),
-    path('mark_complete/', MarkComplete.as_view()),
+    path('module/<int:module_id>/mark_complete/<int:learner_id>/', MarkComplete.as_view()),
     path('upload/', AddMedia.as_view(), name='upload-api'),
     #list
     path('programs/', ProgramListAPIView.as_view()),

@@ -32,7 +32,7 @@ class Module(models.Model):
     content = models.TextField(default="default content", blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='under_course')
     created_at = models.DateField(blank=False)
-
+    num_tests = models.DecimalField(decimal_places=0, max_digits=2, default=0)
 
     def __str__(self) -> str:
         return self.name
@@ -94,7 +94,8 @@ class Grade(models.Model):
     """
     model to store grades of learners.
     """
-    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='test_grade')
+    module =  models.ForeignKey(Module, default=None, on_delete=models.CASCADE, related_name='module_grade')
+    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='test_grade', blank=True, null=True)
     learner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='learner_grade')
     grade = models.DecimalField(blank=False, max_digits=5, decimal_places=2)
     passed = models.BooleanField(default=None)
@@ -117,4 +118,5 @@ class LearnerCompletion(models.Model):
     module = models.ForeignKey(Module, null=True,default=None, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, null=True,default=None, on_delete=models.CASCADE)
     program = models.ForeignKey(Program, null=True,default=None, on_delete=models.CASCADE)
+    score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     completed_at = models.DateField()

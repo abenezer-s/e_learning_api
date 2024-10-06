@@ -12,6 +12,11 @@ admin.site.register(Question)
 admin.site.register(Answer)
 admin.site.register(Grade)
 admin.site.register(LearnerAnswer)
+admin.site.register(LearnerCompletion)
+
+
+class LearnerCompletionAdmin(admin.ModelAdmin):
+    actions = ['delete_selected']  # Ensures delete action is available
 
 
 

@@ -1,14 +1,26 @@
 from rest_framework import serializers
 from .models import *
 
+class CourseSerialzer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = [
+            "owner",
+            "name",
+            "number_of_modules",
+            "complete_within",
+        ]
+
 class ProgramSerialzer(serializers.ModelSerializer):
+    courses = CourseSerialzer(read_only=True, many=True)
     class Meta:
         model = Program
         fields = [
             "owner",
             "name",
             "number_of_courses",
-            "complete_within"
+            "complete_within",
+            "courses"
         ]
 
 class LearnerCompletionSerializer(serializers.Serializer):
@@ -45,18 +57,6 @@ class ApplicationResponseSerializer(serializers.Serializer):
     program_name = serializers.CharField()
     course_name = serializers.CharField()
     response = serializers.CharField()
-
-
-    
-class CourseSerialzer(serializers.ModelSerializer):
-    class Meta:
-        model = Course
-        fields = [
-            "owner",
-            "name",
-            "number_of_modules",
-            "complete_within",
-        ]
 
 
 class MediaSerialzer(serializers.ModelSerializer):
@@ -99,6 +99,7 @@ class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
         fields =[
+            "id",
             "test_id",
             "value",
             "multi",

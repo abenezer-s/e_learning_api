@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from django.shortcuts import render, redirect
-from django.db.models import Q
+from django.db.models import Q, Sum
 from rest_framework.exceptions import PermissionDenied
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
@@ -17,10 +17,24 @@ from rest_framework.parsers import MultiPartParser, FormParser
 
 class MarkComplete(APIView):
     """
-    Given the module, course and program name and learner username(string "None" if not part of program), mark the module as completed 
+    Given the module, course and program name and learner username(string "None" if not part of program),
+    mark the module as completed 
     and update overal progress on the program or course.
     """
     permission_classes = [IsLearnerOrContentCreater]
+
+    def calculate_score(self, course, learner):
+        #calculate course score b
+        course_modules = Module.objects.filter(course=course)
+        course_score = Decimal(0)
+        num_modules = Decimal(0)
+        for module_inst in course_modules:
+            module_score = Grade.objects.filter(learner=learner, module=module_inst).aggregate(total=Sum('grade'))
+            course_score += module_score['total']
+            print("TYEPE OF COURSE_SCORE",type(course_score))
+            print("TYEPE OF module_score total",type(module_score["total"]))
+            num_modules += Decimal(1)
+        return course_score / num_modules if num_modules > 0 else 0
 
     def update_progress(self,learner, module, course_enrollment, program_enrollments=None):
         
@@ -41,108 +55,187 @@ class MarkComplete(APIView):
         #check if course is part of any program and update program progress if course is co7mpleted
         if program_enrollments and (cur_progress_course == 100):
 
-            for program_enrollment in program_enrollments:
-                #update each program that conatians the course and  learner is enrolled in
+            #update each program that conatians the course and  learner is enrolled in
+            for program_enrollment in program_enrollments:    
                 program_enrollment.number_of_courses_completed += Decimal(1)
                 module_program = program_enrollment.program
                 num_courses = module_program.number_of_courses
                 completed_courses = program_enrollment.number_of_courses_completed
 
                 if program_enrollment.progress != 100:
-                    progress = (completed_courses / num_modules) * 100
+                    progress = (completed_courses / num_courses) * 100
                     program_enrollment.progress = progress
                     cur_progress_program = program_enrollment.progress #current progress in program
                     program_enrollment.save()
                     #
                     if cur_progress_program == 100:
                         #learner has completed the program after finishing current course 
-                        LearnerCompletion.objects.create(learner=learner, module=module, course=module_course, program=module_program, completed_at=date)
-                        return Response({"message":"course and program completed successfully!"})
+                        #calculate program score
+                        program_courses = module_program.courses.all()
+                        prog_score = Decimal(0)
+                        count_course = Decimal(0)
+                        for course_inst in program_courses:
+                           #calculate course score
+                            course_score = self.calculate_score(course_inst, learner)#Decimal(0) 
+                            prog_score += course_score
+                            count_course += Decimal(1)
+                        
+                            prog_score = prog_score / count_course 
+                            formated_score = format(prog_score, '.2f')    
+                            LearnerCompletion.objects.get_or_create(learner=learner, 
+                                                             module=module, 
+                                                             course=module_course,
+                                                             program=module_program, 
+                                                             score=formated_score, 
+                                                             completed_at=date)
+
+                        return Response({"message":"program completed successfully!",
+                                         "score": prog_score})
                     else:
-                        #learner has completed the course
-                        LearnerCompletion.objects.create(learner=learner, module=module, completed_at=date)
-                        return Response({"message":"program completed successfully!"})
+                        continue
+
+            #learner has completed the course
             
-        else:
+            course_score = self.calculate_score(module_course, learner) #calculate course score
+            
+            # create it if it does not exist                            
+            LearnerCompletion.objects.get_or_create(learner=learner, 
+                                             module=module, 
+                                             course=module_course, 
+                                             completed_at=date, 
+                                             score=course_score)
+            course_enrollment.status = 'complete'
+            course_enrollment.save()
+            
+            return Response({"message":"course completed successfully! 2",
+                            "score":format(course_score, '.2f')})
+            
+        elif cur_progress_course != 100:
             #learner has completed the module
-            LearnerCompletion.objects.create(learner=learner, module=module, completed_at=date)
-            return Response({"message":"module completed successfully!"})
+            result = Grade.objects.get(module=module, learner=learner)
+            score = result.grade
+            
+            LearnerCompletion.objects.get_or_create(learner=learner,
+                                              module=module, 
+                                              score=score, 
+                                              completed_at=date)
+            
+            return Response({"message":"module completed successfully! 1",
+                             "score":score})
 
+        else:
+            #learner has completed the course
+            course_score = self.calculate_score(module_course, learner)
+            LearnerCompletion.objects.get_or_create(learner=learner, 
+                                             module=module, 
+                                             course=module_course, 
+                                             completed_at=date, 
+                                             score=course_score)
+            course_enrollment.status = 'complete'
+            course_enrollment.save()
+            
+            return Response({"message":"course completed successfully. 1",
+                             "score": course_score})
+
+    def patch(self, request, module_id, learner_id):
         
-        return Response({"message":"course already completed"})
+        user = self.request.user
+        # get instances
+        try:
+            learner = User.objects.get(id=learner_id)
+        except User.DoesNotExist:
+            return Response({"message":"learner not found"})
+        
+        learner_profile = UserProfile.objects.get(user=learner)
+        
+        try:
+            module = Module.objects.get(id=module_id)
+        except Module.DoesNotExist:
+            return Response({"message":"module does not exist"})
+        #proceed if module not already completed
 
-    def patch(self, request):
-        serializer = LearnerCompletionSerializer(data=request.data)
-        if serializer.is_valid():
-            module_name = serializer.validated_data['module_name']
-            learner_username = serializer.validated_data['learner_username']
-            user = self.request.user
+        try:
+            LearnerCompletion.objects.get(module=module, learner=learner)
+        except (LearnerCompletion.DoesNotExist):
+            pass
+        except LearnerCompletion.MultipleObjectsReturned:
+            return Response({"messge":"Module already completed"})
+        else:
+            return Response({"messge":"Module already completed"})
             
-            # get instances
-            try:
-                learner = User.objects.get(username=learner_username)
-            except User.DoesNotExist:
-                return Response({"message":"learner not found"})
-            
-            learner_profile = UserProfile.objects.get(user=learner)
-            
-            try:
-                module = Module.objects.get(name=module_name)
-            except Module.DoesNotExist:
-                return Response({"message":"module does not exist"})
-            
-            try:
-                module_course = Course.objects.get(name=module.course.name) #course where the module belongs to
-            except Module.DoesNotExist:
-                return Response({"message":"module's course does not exist"}) 
-            
-            try:
-                course_enrollment = CourseEnrollment.objects.get(Q(learner=learner_profile) & Q(course=module_course))
-                is_enrolled_course = True          
-            except CourseEnrollment.DoesNotExist:
-                is_enrolled_course = False
 
+        try:
+            module_course = Course.objects.get(id=module.course.id) #course where the module belongs to
+        except Module.DoesNotExist:
+            return Response({"message":"module's course does not exist"}) 
+        
+        #check if enrolled in the course
+        try:
+            course_enrollment = CourseEnrollment.objects.get(Q(learner=learner_profile) & Q(course=module_course))
+            is_enrolled_course = True          
+        except CourseEnrollment.DoesNotExist:
+            is_enrolled_course = False
+        else:
             #check deadline
-            date = datetime.now()
+            date_today = date.today()
             deadline = course_enrollment.deadline
             within_deadline = True
             if deadline:
-                within_deadline = deadline >= date
+                within_deadline = (deadline >= date_today)
 
-            #if learner is within deadline and is enrolled or user is owner of module update
-            if learner or module.owner:
+        #check learner has passed all tests in module then update progress
+        num_tests = module.num_tests
+        tests_passed = 0
+        passed_all_tests = None
+        if num_tests > 0: 
+            tests_passed = Grade.objects.filter(learner=learner, module=module, passed=True).count()
+            
+            if num_tests == tests_passed:
+                passed_all_tests = True
+               
+            else:
+                passed_all_tests= False
+                return Response({"message":"can not mark module as complete. You have not passed all tests."})
+        else:
+            passed_all_tests = True
+            #create a full score for module ensuring a module is always scored
+            Grade.objects.get_or_create(learner=learner, module=module, grade=100, passed=True)
 
-                if is_enrolled_course and within_deadline:
-                    
-                    try:
-                        #course could be part of multiple programs
-                        module_programs = Program.objects.filter(courses__name=module_course.name)    
-                    except Program.DoesNotExist:
-                        #course not part of any program
-                        update = self.update_progress(learner, module, course_enrollment)
-                        return update
-                    
-                    enrollment_list = []
-                    for program in module_programs:
-                        print(program)
-                        try:
-                            program_enrollment = ProgramEnrollment.objects.get(learner=learner_profile, program=program)
-                            print('program enromt',program_enrollment.program)
-                        except ProgramEnrollment.DoesNotExist:
-                            return Response({"message":"not enrolled in program"})
-                        enrollment_list.append(program_enrollment)
-
-                    #course is part of a program    
-                    update = self.update_progress(learner, module, course_enrollment, program_enrollments=enrollment_list)
+        #if learner is within deadline and is enrolled or user is owner of module update
+        if (learner_profile.creator == False) or (user == module.owner):
+            if is_enrolled_course and within_deadline and passed_all_tests:
+                
+                #course could be part of multiple programs
+                module_programs = Program.objects.filter(courses__name=module_course.name)    
+                if not module_programs:
+                    #course not part of any program
+                    update = self.update_progress(learner, module, course_enrollment)
                     return update
                 
-                else:
-                    if not is_enrolled_course:
-                        return Response({"message":"you do not have permisssion to perform this action. Not enrolled."})
-                    else:
-                        return Response({"message":"you can not perform this action. Deadline has passed."})
+                #course part of muliple programs
+                enrollment_list = []
+                for program in module_programs:
+                    
+                    try:
+                        program_enrollment = ProgramEnrollment.objects.get(learner=learner_profile, program=program)
+                    except ProgramEnrollment.DoesNotExist:
+                        #learner not enrolled in program the course belongs to.
+                        continue
+
+                    enrollment_list.append(program_enrollment)
+
+                #if course is part of a program and learner is enrolled in it,  update program progress
+                if enrollment_list:  
+                    update = self.update_progress(learner, module, course_enrollment, program_enrollments=enrollment_list)
+                    return update
+            
             else:
-                    return Response({"message":"you do not have permisssion to perform this action"})
+                if not is_enrolled_course:
+                    return Response({"message":"you do not have permisssion to perform this action. Not enrolled."})
+                else:
+                    return Response({"message":"you can not perform this action. Deadline has passed."})
+        else:
+                return Response({"message":"you do not have permisssion to perform this action"})
                 
             
 class ApplicationResponse(APIView):
@@ -462,7 +555,7 @@ class ModuleDetailAPIView(generics.RetrieveAPIView):
     queryset = Module.objects.all()
     serializer_class = ModuleSerialzer
     permission_classes = [IsAuthenticated]
-    lookup_field = 'id'
+    
     #check if the requester is enrolled or owns the module if so grant access
     def get(self, request, *args, **kwargs):
         
@@ -612,6 +705,10 @@ class TestCreateAPIView(generics.CreateAPIView):
             
             if module.owner == self.request.user: 
                 Test.objects.create(owner=self.request.user, module=module, description=description,time_limit=time_limit, pass_score=pass_score, created_at=date)  
+                num_tests = module.num_tests
+                num_tests += Decimal(1)
+                module.numtests = num_tests
+                module.save()
                 return Response({"message": "test created succesfully"})
             else:
                 return Response({"message": "you do not have permission to perform this action"})
@@ -646,8 +743,10 @@ class QuestionCreateAPIView(generics.CreateAPIView):
             if module.owner == self.request.user: 
                 Question.objects.create(test=test, value=value, multi=bool(multi),answer=answer, created_at=date)
                 #update number of qestions in the test
-                test.num_of_questions += Decimal(1)
-                test.save
+                num_of_questions = test.num_of_questions 
+                num_of_questions += Decimal(1)
+                test.num_of_questions = num_of_questions
+                test.save()
                 return Response({"message": "question created succesfully"})
             else:
                 return Response({"message": "you do not have permission to perform this action"})
@@ -735,10 +834,10 @@ class SubmitAnswersAPIView(APIView):
             
             if grade >= test.pass_score:
                 #update grade records
-                Grade.objects.create(test=test, learner=learner,grade=grade, passed=True)
+                Grade.objects.create(module=module, test=test, learner=learner,grade=grade, passed=True)
             else:
                 #update grade records
-                Grade.objects.create(test=test, learner=learner,grade=grade, passed=False)
+                Grade.objects.create(module=module, test=test, learner=learner,grade=grade, passed=False)
 
             return Response({
                 "learner": learner.first_name,
