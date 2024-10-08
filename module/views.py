@@ -2,7 +2,8 @@ from datetime import datetime, date
 from django.db.models import Q, Sum
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
-from rest_framework import generics
+from rest_framework import generics, status
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from permissions import IsContentCreator, IsLearnerOrContentCreater
@@ -80,17 +81,20 @@ class MarkComplete(APIView):
                             prog_score += course_score
                             count_course += Decimal(1)
                         
-                            prog_score = prog_score / count_course 
-                            formated_score = format(prog_score, '.2f')    
-                            LearnerCompletion.objects.get_or_create(learner=learner, 
-                                                             module=module, 
-                                                             course=module_course,
-                                                             program=module_program, 
-                                                             score=formated_score, 
-                                                             completed_at=date)
-
+                        prog_score = prog_score / count_course 
+                        formated_score = format(prog_score, '.2f')    
+                        LearnerCompletion.objects.get_or_create(learner=learner, 
+                                                         module=module, 
+                                                         course=module_course,
+                                                         program=module_program, 
+                                                         score=formated_score, 
+                                                         completed_at=date)
+                        
+                        program_enrollment.status = 'completed'
+                        program_enrollment.save()
                         return Response({"message":"program completed successfully!",
-                                         "score": prog_score})
+                                         "score": prog_score},
+                                         status=status.HTTP_200_OK)
                     else:
                         continue
 
@@ -104,11 +108,12 @@ class MarkComplete(APIView):
                                              course=module_course, 
                                              completed_at=date, 
                                              score=course_score)
-            course_enrollment.status = 'complete'
+            course_enrollment.status = 'completed'
             course_enrollment.save()
             
-            return Response({"message":"course completed successfully! 2",
-                            "score":format(course_score, '.2f')})
+            return Response({"message":"course completed successfully!",
+                            "score":format(course_score, '.2f')},
+                            status=status.HTTP_200_OK)
             
         elif cur_progress_course != 100:
             #learner has completed the module
@@ -120,8 +125,9 @@ class MarkComplete(APIView):
                                               score=score, 
                                               completed_at=date)
             
-            return Response({"message":"module completed successfully! 1",
-                             "score":score})
+            return Response({"message":"module completed successfully!",
+                             "score":score},
+                             status=status.HTTP_200_OK)
 
         else:
             #learner has completed the course
@@ -134,8 +140,9 @@ class MarkComplete(APIView):
             course_enrollment.status = 'complete'
             course_enrollment.save()
             
-            return Response({"message":"course completed successfully. 1",
-                             "score": course_score})
+            return Response({"message":"course completed successfully.",
+                             "score": course_score},
+                             status=status.HTTP_200_OK)
 
     def patch(self, request, module_id, learner_id):
         
@@ -144,14 +151,16 @@ class MarkComplete(APIView):
         try:
             learner = User.objects.get(id=learner_id)
         except User.DoesNotExist:
-            return Response({"message":"learner not found"})
+            return Response({"error":"learner not found"},
+                            status=status.HTTP_404_NOT_FOUND)
         
         learner_profile = UserProfile.objects.get(user=learner)
         
         try:
             module = Module.objects.get(id=module_id)
         except Module.DoesNotExist:
-            return Response({"message":"module does not exist"})
+            return Response({"error":"module does not exist"},
+                            status=status.HTTP_404_NOT_FOUND)
         #proceed if module not already completed
 
         try:
@@ -159,15 +168,18 @@ class MarkComplete(APIView):
         except (LearnerCompletion.DoesNotExist):
             pass
         except LearnerCompletion.MultipleObjectsReturned:
-            return Response({"messge":"Module already completed"})
+            return Response({"error":"Module already completed"},
+                            status=status.HTTP_403_FORBIDDEN)
         else:
-            return Response({"messge":"Module already completed"})
+            return Response({"error":"Module already completed"},
+                            status=status.HTTP_403_FORBIDDEN)
             
 
         try:
             module_course = Course.objects.get(id=module.course.id) #course where the module belongs to
         except Module.DoesNotExist:
-            return Response({"message":"module's course does not exist"}) 
+            return Response({"error":"module's course does not exist"},
+                            status=status.HTTP_404_NOT_FOUND) 
         
         #check if enrolled in the course
         try:
@@ -195,7 +207,8 @@ class MarkComplete(APIView):
                
             else:
                 passed_all_tests= False
-                return Response({"message":"can not mark module as complete. You have not passed all tests."})
+                return Response({"message":"can not mark module as complete. You have not passed all tests."},
+                                status=status.HTTP_403_FORBIDDEN)
         else:
             passed_all_tests = True
             #create a full score for module ensuring a module is always scored
@@ -231,11 +244,14 @@ class MarkComplete(APIView):
             
             else:
                 if not is_enrolled_course:
-                    return Response({"message":"you do not have permisssion to perform this action. Not enrolled."})
+                    return Response({"error":"you do not have permisssion to perform this action. Not enrolled."},
+                                    status=status.HTTP_403_FORBIDDEN)
                 else:
-                    return Response({"message":"you can not perform this action. Deadline has passed."})
+                    return Response({"error":"you can not perform this action. Deadline has passed."},
+                                    status=status.HTTP_403_FORBIDDEN)
         else:
-                return Response({"message":"you do not have permisssion to perform this action"})
+                return Response({"error":"you do not have permisssion to perform this action"},
+                                status=status.HTTP_403_FORBIDDEN)
 
 class AddMedia(APIView):
     """
@@ -256,18 +272,22 @@ class AddMedia(APIView):
             try:
                 module = Module.objects.get(name=module_name)
             except Module.DoesNotExist:
-                return Response({"message":"Can not add media to module. Module does not exist."})
+                return Response({"message":"Can not add media to module. Module does not exist."},
+                                 status=status.HTTP_404_NOT_FOUND)
         
             #create media instance if user owns the module
             if user == module.owner:
                 Media.objects.create(owner=user, file=file, description=description, module=module)
-                return Response({"message":"Added media to module successfully."})
+                return Response({"message":"Added media to module successfully."},
+                                status=status.HTTP_200_OK)
             else: 
-                return Response({"message":"Can not add media to module. You do not have permission."})
+                return Response({"error":"Can not add media to module. You do not have permission."},
+                                status=status.HTTP_403_FORBIDDEN)
         else:
             e = serializer.errors
             return Response({"message":"Invalid serializer.",
-                             "error":e})
+                             "error":e},
+                             status=status.HTTP_400_BAD_REQUEST)
 def isEnrolledOrOwner(module, request, obj):
         """
         A helper function to determine whether a user 

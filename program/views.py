@@ -36,9 +36,11 @@ class AddCourseAPIView(APIView):
 
                     return redirect('add-course-view')
                 else:
-                    return Response({"message": "you do not have permission to perform this action"})
+                    return Response({"message": "you do not have permission to perform this action"},
+                                    status=status.HTTP_403_FORBIDDEN)
             else:
-               return Response({"message": "course or program does not exist"})
+               return Response({"message": "course or program does not exist"},
+                               status=status.HTTP_404_NOT_FOUND)
 
 class ProgramDetailAPIView(generics.RetrieveAPIView):
     queryset = Program.objects.all()
@@ -87,5 +89,6 @@ class ProgramDestroyAPIView(generics.DestroyAPIView):
         if instance.owner != self.request.user:
             raise PermissionDenied("You do not have permission to edit this test.")
         instance.delete()
-        return Response({"message": "Program deleted successfully."})
+        return Response({"message": "Program deleted successfully."},
+                        status=status.HTTP_200_OK)
     

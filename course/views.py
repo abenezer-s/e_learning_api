@@ -59,4 +59,5 @@ class CourseDestroyAPIView(generics.DestroyAPIView):
         if instance.owner != self.request.user:
             raise PermissionDenied("You do not have permission to edit this test.")
         instance.delete()
-        return Response({"message": "Course deleted successfully."})
+        return Response({"message": "Course deleted successfully."}, 
+                        status=status.HTTP_200_OK)

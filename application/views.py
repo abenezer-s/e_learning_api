@@ -1,17 +1,14 @@
 from datetime import datetime, date, timedelta
-from django.db.models import Q, Sum
+from django.db.models import Q
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from permissions import IsContentCreator, IsLearner
 from .models import *
 from users.models import CourseEnrollment, ProgramEnrollment, UserProfile
 from .serializers import *
-from decimal import Decimal
-from rest_framework.parsers import MultiPartParser, FormParser
-from test.models import Grade
 from application.serializers import ApplicationSerialzer
 
 # Create your views here.
@@ -29,19 +26,23 @@ class ApplicationResponse(APIView):
                 course = Course.objects.get(name=course_name)
                 course_owner = course.owner
                 if course_owner != request.user:
-                    return Response({"message":"You do not have permission to perform this action"})
+                    return Response({"error":"You do not have permission to perform this action"}, 
+                                    status=status.HTTP_401_UNAUTHORIZED)
                 
             except (User.DoesNotExist, Course.DoesNotExist):
-                return Response({"message":"no course or learner found by the provided course or learner name"})
+                return Response({"error":"no course or learner found by the provided course or learner name"},
+                                status=status.HTTP_404_NOT_FOUND)
            
             try:
                 application = Application.objects.get(Q(course=course) & Q(learner=learner_obj))
                 application.state = 'rejected'
                 application.save()
             except Application.DoesNotExist:
-                return Response({"message":"Application not found"})
+                return Response({"error":"Application not found"},
+                                status=status.HTTP_404_NOT_FOUND)
     
-            return Response({"message":"Application to course rejected succesfully"})
+            return Response({"message":"Application to course rejected succesfully"}, 
+                            status=status.HTTP_200_OK)
         
         else:
             try:
@@ -49,18 +50,23 @@ class ApplicationResponse(APIView):
                 program = Program.objects.get(name=program_name)
                 program_owner = program.owner
                 if program_owner != request.user:
-                    return Response({"message":"You do not have permission to perform this action"})
+                    return Response({"error":"You do not have permission to perform this action"},
+                                    status=status.HTTP_401_UNAUTHORIZED)
+                
             except (User.DoesNotExist, Program.DoesNotExist):
-                return Response({"message":"no program or learner found by the provided program or program name"})
+                return Response({"error":"no program or learner found by the provided program or program name"},
+                                status=status.HTTP_404_NOT_FOUND)
 
             try:
                 application = Application.objects.get(Q(program=program) & Q(learner=learner_obj))  
             except Application.DoesNotExist:
-                return Response({"message":"Application not found"})
+                return Response({"error":"Application not found"},
+                                status=status.HTTP_404_NOT_FOUND)
             
             application.state = 'rejected'
             application.save()
-            return Response({"message":"Application to program rejected succesfully"})
+            return Response({"message":"Application to program rejected succesfully"},
+                            status=status.HTTP_200_OK)
 
     def accept(self, learner, program_name, course_name, request, date):
         #response for course  
@@ -71,16 +77,19 @@ class ApplicationResponse(APIView):
                 course = Course.objects.get(name=course_name)
                 course_owner = course.owner
                 if course_owner != request.user:
-                    return Response({"message":"You do not have permission to perform this action"})
+                    return Response({"error":"You do not have permission to perform this action"},
+                                    status=status.HTTP_401_UNAUTHORIZED)
                 
             except (User.DoesNotExist, Course.DoesNotExist, UserProfile.DoesNotExist):
-                return Response({"message":"no course or learner found by the provided course or learner name"})
+                return Response({"error":"no course or learner found by the provided course or learner name"},
+                                status=status.HTTP_404_NOT_FOUND)
             try:
                 application = Application.objects.get(Q(course=course) & Q(learner=learner_obj))
                 application.state = 'accepted' # needs fixing
                 application.save()
             except Application.DoesNotExist:
-                return Response({"message":"Application not found"})
+                return Response({"error":"Application not found"},
+                                status=status.HTTP_200_OK)
 
             #enroll learner to course with appropriate deadlines if there are any
             num_weeks = course.complete_within
@@ -90,7 +99,8 @@ class ApplicationResponse(APIView):
             else:
                 CourseEnrollment.objects.create(learner=learner_profile, course=course, date_of_enrollment=date)
                 
-            return Response({"message":"Application to program accepted succesfully"})
+            return Response({"message":"Application to program accepted succesfully"},
+                            status=status.HTTP_200_OK)
 
         #response for program                
         else:
@@ -100,16 +110,20 @@ class ApplicationResponse(APIView):
                 program = Program.objects.get(name=program_name)
                 program_owner = program.owner
                 if program_owner != request.user:
-                    return Response({"message":"You do not have permission to perform this action"})
+                    return Response({"error":"You do not have permission to perform this action"},
+                                    status=status.HTTP_401_UNAUTHORIZED)
+                
             except (User.DoesNotExist, Program.DoesNotExist, UserProfile.DoesNotExist):
-                return Response({"message":"no program or learner found by the provided program or program name"})
+                return Response({"error":"no program or learner found by the provided program or program name"},
+                                status=status.HTTP_404_NOT_FOUND)
             
             try:
                 application = Application.objects.get(Q(program=program) & Q(learner=learner_obj))
                 application.state = 'accepted' 
                 application.save()
             except Application.DoesNotExist:
-                return Response({"message":"Application not found"})
+                return Response({"error":"Application not found"},
+                                status=status.HTTP_404_NOT_FOUND)
             
             #enroll learner to program with appropriate deadlines if there are any
             num_weeks = program.complete_within
@@ -119,7 +133,8 @@ class ApplicationResponse(APIView):
             else:
                 ProgramEnrollment.objects.create(learner=learner_profile, program=program, date_of_enrollment=date)
 
-            return Response({"message":"Application to program accepted succesfully"})
+            return Response({"message":"Application to program accepted succesfully"},
+                            status=status.HTTP_200_OK)
 
     def post(self, request):
         date = datetime.now()
@@ -134,13 +149,13 @@ class ApplicationResponse(APIView):
             
             #enroll learner to course/program if accepted            
             if response == 'Accept':
-                response = self.accept(learner, program_name, course_name, request, date)
-                return response
+                accepted = self.accept(learner, program_name, course_name, request, date)
+                return accepted
             else:
                 self.reject(learner, program_name, course_name, request, date)
-                return Response({"message":"Application rejected succesfully"})
-        else:
-                    
+                return Response({"message":"Application rejected succesfully"},
+                                status=status.HTTP_200_OK)
+        else:       
             pass
 
 class Apply(APIView):
@@ -162,37 +177,46 @@ class Apply(APIView):
                 try:
                     course = Course.objects.get(name=course_name)
                 except Course.DoesNotExist:
-                    return Response({"message":"course not found"})
+                    return Response({"error":"course not found"},
+                                    status=status.HTTP_404_NOT_FOUND)
                 course_owner = course.owner
                 try:
                     learner_user = User.objects.get(username=learner)
                 except User.DoesNotExist:
-                    return Response({"message":"User not found"})
+                    return Response({"error":"User not found"},
+                                    status=status.HTTP_404_NOT_FOUND)
                 try:
                     application = Application.objects.create(owner=course_owner, learner=learner_user,submitted_at=date, motivation_letter=motivation_letter, state='Pending')
                 except Application.DoesNotExist:
-                    return Response({"message":"application not found"})
+                    return Response({"error":"application not found"},
+                                    status=status.HTTP_404_NOT_FOUND)
                 application.course.add(course)
-                return Response({"message":"successfully applied to course"})
+                return Response({"message":"successfully applied to course"},
+                                status=status.HTTP_200_OK)
             else:
                 try:
                     program = Program.objects.get(name=program_name)
                 except Program.DoesNotExist:
-                    return Response({"message":"program not found"})
+                    return Response({"error":"program not found"},
+                                    status=status.HTTP_404_NOT_FOUND)
                 program_owner = program.owner
                 try:
                     learner_user = User.objects.get(username=learner)
                 except User.DoesNotExist:
-                    return Response({"message":"User not found"})
+                    return Response({"error":"User not found"},
+                                    status=status.HTTP_404_NOT_FOUND)
                 try:
                     application = Application.objects.create(owner=program_owner, learner=learner_user,submitted_at=date, motivation_letter=motivation_letter, state='Pending')
                 except Application.DoesNotExist:
-                    return Response({"message":"application not found"})
+                    return Response({"error":"application not found"},
+                                    status=status.HTTP_404_NOT_FOUND)
                 application.program.add(program)
-                return Response({"message":"successfully applied to program"})
+                return Response({"message":"successfully applied to program"},
+                                status=status.HTTP_200_OK)
             
         print(serializer.errors)
-        return Response({"message":"invalid serializer"})
+        return Response({"error":"invalid serializer"},
+                        status=status.HTTP_400_BAD_REQUEST)
     
 
 class ApplicationDetailAPIView(generics.RetrieveAPIView):
@@ -235,5 +259,6 @@ class ApplicationDestroyAPIView(generics.DestroyAPIView):
         if instance.owner != self.request.user:
             raise PermissionDenied("You do not have permission to edit this test.")
         instance.delete()
-        return Response({"message": "Media deleted successfully."})
+        return Response({"message": "Media deleted successfully."},
+                        status=status.HTTP_200_OK)
     

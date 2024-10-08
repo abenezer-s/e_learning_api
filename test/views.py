@@ -90,7 +90,8 @@ class TestCreateAPIView(generics.CreateAPIView):
             try:
                 module = Module.objects.get(id=int(id))
             except Module.DoesNotExist:
-                return Response({"message": "module does not exist"})
+                return Response({"message": "module does not exist"},
+                                status=status.HTTP_404_NOT_FOUND)
             
             if module.owner == self.request.user: 
                 Test.objects.create(owner=self.request.user, module=module, description=description,time_limit=time_limit, pass_score=pass_score, created_at=date)  
@@ -98,11 +99,14 @@ class TestCreateAPIView(generics.CreateAPIView):
                 num_tests += Decimal(1)
                 module.numtests = num_tests
                 module.save()
-                return Response({"message": "test created succesfully"})
+                return Response({"message": "test created succesfully"},
+                                status=status.HTTP_200_OK)
             else:
-                return Response({"message": "you do not have permission to perform this action"})
+                return Response({"error": "you do not have permission to perform this action"},
+                                status=status.HTTP_403_FORBIDDEN)
         else:
-            return Response({"message": "Invalid serializer."})
+            return Response({"message": "Invalid serializer."},
+                            status=status.HTTP_400_BAD_REQUEST)
         
 class QuestionCreateAPIView(generics.CreateAPIView):
     """
@@ -125,7 +129,8 @@ class QuestionCreateAPIView(generics.CreateAPIView):
             try:
                 test = Test.objects.get(id=int(id))
             except Test.DoesNotExist:
-                return Response({"message": "test does not exist"})
+                return Response({"message": "test does not exist"},
+                                status=status.HTTP_404_NOT_FOUND)
             
             # create question only if user owns the module the test belongs to
             module = test.module
@@ -136,11 +141,14 @@ class QuestionCreateAPIView(generics.CreateAPIView):
                 num_of_questions += Decimal(1)
                 test.num_of_questions = num_of_questions
                 test.save()
-                return Response({"message": "question created succesfully"})
+                return Response({"message": "question created succesfully"},
+                                status=status.HTTP_200_OK)
             else:
-                return Response({"message": "you do not have permission to perform this action"})
+                return Response({"message": "you do not have permission to perform this action"},
+                                status=status.HTTP_403_FORBIDDEN)
         else:
-            return Response({"message": "Invalid serializer."})
+            return Response({"message": "Invalid serializer."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 class AnswerCreateAPIView(generics.CreateAPIView):
     """
@@ -162,22 +170,27 @@ class AnswerCreateAPIView(generics.CreateAPIView):
             try:
                 question = Question.objects.get(id=int(question_id))
             except Question.DoesNotExist:
-                return Response({"message": "question does not exist"})
+                return Response({"message": "question does not exist"},
+                                status=status.HTTP_400_BAD_REQUEST)
             
             # create answer only if user owns the module the test belongs to and question is multi
             test= question.test
             module = test.module
             if module.owner == self.request.user and question.multi: 
                 Answer.objects.create(question=question, value=value, choice_number=choice_number, created_at=date)  
-                return Response({"message": "answer created succesfully"})
+                return Response({"message": "answer created succesfully"},
+                                status=status.HTTP_200_OK)
             else:
                 if not question.multi:
-                    return Response({"message": "question not multiple choice."})    
+                    return Response({"error": "question not multiple choice."},
+                                    status=status.HTTP_400_BAD_REQUEST)    
                 
-                return Response({"message": "you do not have permission to perform this action"})
+                return Response({"message": "you do not have permission to perform this action"},
+                                status=status.HTTP_403_FORBIDDEN)
         else:
             return Response({"message": "Invalid serializer.",
-                             "error": serializer.errors})
+                             "error": serializer.errors},
+                             status=status.HTTP_400_BAD_REQUEST)
                 
 
 class SubmitAnswersAPIView(APIView):
@@ -300,7 +313,8 @@ class TestDestroyAPIView(generics.DestroyAPIView):
         if instance.owner != self.request.user:
             raise PermissionDenied("You do not have permission to edit this test.")
         instance.delete()
-        return Response({"message": "Test deleted successfully."})
+        return Response({"message": "Test deleted successfully."},
+                        status=status.HTTP_200_OK)
 
 class QuestionDestroyAPIView(generics.DestroyAPIView):
     queryset = Question.objects.all()
@@ -315,7 +329,8 @@ class QuestionDestroyAPIView(generics.DestroyAPIView):
         if module.owner != self.request.user:
             raise PermissionDenied("You do not have permission to delete this test.")
         instance.delete()
-        return Response({"message": "question deleted successfully."})
+        return Response({"message": "question deleted successfully."},
+                        status=status.HTTP_200_OK)
     
 class AnswerDestroyAPIView(generics.DestroyAPIView):
     queryset = Answer.objects.all()
@@ -332,5 +347,6 @@ class AnswerDestroyAPIView(generics.DestroyAPIView):
         if module.owner != self.request.user:
             raise PermissionDenied("You do not have permission to delete this answer.")
         instance.delete()
-        return Response({"message": "answer deleted successfully."})
+        return Response({"message": "answer deleted successfully."},
+                        status=status.HTTP_200_OK)
     
