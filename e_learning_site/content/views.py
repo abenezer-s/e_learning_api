@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta, date
 from django.shortcuts import render, redirect
 from django.db.models import Q, Sum
-from rest_framework.exceptions import PermissionDenied
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
-from rest_framework import generics, status
+from rest_framework import generics, status, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .permissions import IsContentCreator, IsLearner, IsLearnerOrContentCreater
@@ -872,10 +873,18 @@ class ProgramListAPIView(generics.ListAPIView):
     queryset = Program.objects.all()
     serializer_class = ProgramSerialzer
     permission_classes = [IsAuthenticatedOrReadOnly] 
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filter_fields = ['category__name', 'duration']
+    search_fields = ['name', 'owner__name']
 
 class CourseListAPIView(generics.ListAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseSerialzer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filter_fields = ['category__name', 'duration']
+    search_fields = ['name', 'owner__username']
+
     
 class ModuleListAPIView(generics.ListAPIView):
     queryset = Module.objects.all()
