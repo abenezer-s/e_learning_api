@@ -9,7 +9,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'pk',
             'edit_url',
-            'name',
             'image',
             'courses', 
             'programs'
@@ -18,6 +17,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     password = serializers.CharField(write_only=True)
     delete_url = serializers.HyperlinkedIdentityField(view_name='user-delete-api-view', read_only=True)
+    userprofile = UserProfileSerializer(read_only=True)
     class Meta:
         model = User
         fields = [
@@ -28,6 +28,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
             'last_name',
             'email', 
             'password', 
+            'userprofile'
         ]
 
     def create(self, validated_data):

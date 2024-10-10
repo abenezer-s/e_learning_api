@@ -6,7 +6,7 @@ class Category(models.Model):
     """
     category for courses and programs
     """
-    name = models.CharField(max_length=30, blank=False)
+    name = models.CharField(max_length=30, blank=False, unique=True)
 
 class Course(models.Model):
     owner = models.ForeignKey(User,default=None, on_delete=models.CASCADE, related_name='course_owner')

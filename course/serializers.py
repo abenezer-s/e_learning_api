@@ -10,3 +10,8 @@ class CourseSerialzer(serializers.ModelSerializer):
             "number_of_modules",
             "complete_within",
         ]
+
+class CategorySerialzer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = '__all__'

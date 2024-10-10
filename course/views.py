@@ -9,10 +9,6 @@ from permissions import IsContentCreator
 from .models import *
 from .serializers import *
 
-
-
-# Create your views here.
-
 class CourseDetailAPIView(generics.RetrieveAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseSerialzer
@@ -60,4 +56,54 @@ class CourseDestroyAPIView(generics.DestroyAPIView):
             raise PermissionDenied("You do not have permission to edit this test.")
         instance.delete()
         return Response({"message": "Course deleted successfully."}, 
+                        status=status.HTTP_200_OK)
+
+#categories
+class CategoryDetailAPIView(generics.RetrieveAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerialzer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'name'
+
+class CategoryCreateAPIView(generics.CreateAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerialzer
+    permission_classes = [IsAuthenticatedOrReadOnly, IsContentCreator] 
+
+    def perform_create(self, serializer):
+        date = datetime.now()
+        serializer.save(owner=self.request.user, created_at=date)
+
+class CategoryListAPIView(generics.ListAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerialzer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filter_fields = ['category__name', 'duration']
+    search_fields = ['name', 'owner__username']
+
+class CategoryUpdateAPIView(generics.UpdateAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerialzer
+    permission_classes = [IsContentCreator]
+    
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Check ownership
+        if instance.owner != request.user:
+            raise PermissionDenied("You do not have permission to edit this course.")
+        return super().update(request, *args, **kwargs)
+
+class CategoryDestroyAPIView(generics.DestroyAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerialzer
+    permission_classes = [IsContentCreator]
+    
+    def perform_destroy(self,instance):
+    
+        # Check ownership
+        if instance.owner != self.request.user:
+            raise PermissionDenied("You do not have permission to edit this test.")
+        instance.delete()
+        return Response({"message": "Category deleted successfully."}, 
                         status=status.HTTP_200_OK)

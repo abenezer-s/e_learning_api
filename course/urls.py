@@ -7,4 +7,5 @@ urlpatterns =[
     path('courses/', CourseListAPIView.as_view(), name='courses-api'),
     path('course/<int:pk>/update/', CourseUpdateAPIView.as_view()),
     path('course/<int:pk>/delete/', CourseDestroyAPIView.as_view()),
+    
 ]
