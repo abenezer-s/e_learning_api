@@ -12,7 +12,6 @@ class Test(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
     module = models.ForeignKey(Module, on_delete=models.CASCADE, default=None)
     description = models.TextField(blank=False)
-    time_limit = models.DecimalField(default=None, blank=True, max_digits=3, decimal_places=0)
     pass_score = models.DecimalField(default=50, blank=True, max_digits=3, decimal_places=0)
     num_of_questions = models.DecimalField(max_digits=3, decimal_places=0, default=0)
     created_at = models.DateField(blank=True, default=None)
@@ -56,12 +55,3 @@ class LearnerAnswer(models.Model):
     answer = models.TextField()
     correct = models.BooleanField()
     
-class Grade(models.Model):
-    """
-    model to store grades of learners.
-    """
-    module =  models.ForeignKey(Module, default=None, on_delete=models.CASCADE, related_name='module_grade')
-    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='test_grade', blank=True, null=True)
-    learner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='learner_grade')
-    grade = models.DecimalField(blank=False, max_digits=5, decimal_places=2)
-    passed = models.BooleanField(default=None)

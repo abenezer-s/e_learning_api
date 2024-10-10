@@ -51,7 +51,7 @@ class LoginView(APIView):
                 'access': str(refresh.access_token),
             })
         else:
-            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'error': 'Invalid credentials'}, status=status.HTTP_403_FORBIDDEN)
 
     
 class LogoutView(APIView):
@@ -64,7 +64,7 @@ class LogoutView(APIView):
             # Blacklist the refresh token
             token.blacklist()
 
-            return Response({"message": "Logged out successfully"}, status=status.HTTP_205_RESET_CONTENT)
+            return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

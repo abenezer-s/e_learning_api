@@ -85,19 +85,26 @@ class ApplicationResponse(APIView):
                                 status=status.HTTP_404_NOT_FOUND)
             try:
                 application = Application.objects.get(Q(course=course) & Q(learner=learner_obj))
-                application.state = 'accepted' # needs fixing
-                application.save()
+                
             except Application.DoesNotExist:
                 return Response({"error":"Application not found"},
                                 status=status.HTTP_200_OK)
+            else:
+                application.state = 'accepted' 
+                application.save()
 
             #enroll learner to course with appropriate deadlines if there are any
             num_weeks = course.complete_within
             if num_weeks:
                 deadline = date + timedelta(weeks=num_weeks)
-                CourseEnrollment.objects.create(learner=learner_profile, course=course, date_of_enrollment=date, deadline=deadline)
+                CourseEnrollment.objects.create(learner=learner_profile,
+                                                course=course,
+                                                date_of_enrollment=date, 
+                                                deadline=deadline)
             else:
-                CourseEnrollment.objects.create(learner=learner_profile, course=course, date_of_enrollment=date)
+                CourseEnrollment.objects.create(learner=learner_profile,
+                                                course=course,
+                                                date_of_enrollment=date)
                 
             return Response({"message":"Application to program accepted succesfully"},
                             status=status.HTTP_200_OK)
@@ -119,19 +126,26 @@ class ApplicationResponse(APIView):
             
             try:
                 application = Application.objects.get(Q(program=program) & Q(learner=learner_obj))
-                application.state = 'accepted' 
-                application.save()
+                
             except Application.DoesNotExist:
                 return Response({"error":"Application not found"},
                                 status=status.HTTP_404_NOT_FOUND)
-            
+            else:
+                application.state = 'accepted' 
+                application.save()
+
             #enroll learner to program with appropriate deadlines if there are any
             num_weeks = program.complete_within
             if num_weeks:
                 deadline = date + timedelta(weeks=num_weeks)
-                ProgramEnrollment.objects.create(learner=learner_profile, program=program, date_of_enrollment=date, deadline=deadline)
+                ProgramEnrollment.objects.create(learner=learner_profile,
+                                                program=program, 
+                                                date_of_enrollment=date, 
+                                                deadline=deadline)
             else:
-                ProgramEnrollment.objects.create(learner=learner_profile, program=program, date_of_enrollment=date)
+                ProgramEnrollment.objects.create(learner=learner_profile, 
+                                                 program=program, 
+                                                 date_of_enrollment=date)
 
             return Response({"message":"Application to program accepted succesfully"},
                             status=status.HTTP_200_OK)
@@ -185,12 +199,14 @@ class Apply(APIView):
                 except User.DoesNotExist:
                     return Response({"error":"User not found"},
                                     status=status.HTTP_404_NOT_FOUND)
-                try:
-                    application = Application.objects.create(owner=course_owner, learner=learner_user,submitted_at=date, motivation_letter=motivation_letter, state='Pending')
-                except Application.DoesNotExist:
-                    return Response({"error":"application not found"},
-                                    status=status.HTTP_404_NOT_FOUND)
-                application.course.add(course)
+                
+                application = Application.objects.create(owner=course_owner, 
+                                                            learner=learner_user,
+                                                            submitted_at=date,
+                                                            motivation_letter=motivation_letter,
+                                                            course=course,
+                                                            state='Pending')
+                
                 return Response({"message":"successfully applied to course"},
                                 status=status.HTTP_200_OK)
             else:
@@ -205,18 +221,20 @@ class Apply(APIView):
                 except User.DoesNotExist:
                     return Response({"error":"User not found"},
                                     status=status.HTTP_404_NOT_FOUND)
-                try:
-                    application = Application.objects.create(owner=program_owner, learner=learner_user,submitted_at=date, motivation_letter=motivation_letter, state='Pending')
-                except Application.DoesNotExist:
-                    return Response({"error":"application not found"},
-                                    status=status.HTTP_404_NOT_FOUND)
-                application.program.add(program)
+
+                application = Application.objects.create(owner=program_owner,
+                                                        learner=learner_user,
+                                                        submitted_at=date,
+                                                        motivation_letter=motivation_letter,
+                                                        program=program,
+                                                        state='Pending')
+
+                
                 return Response({"message":"successfully applied to program"},
                                 status=status.HTTP_200_OK)
-            
-        print(serializer.errors)
-        return Response({"error":"invalid serializer"},
-                        status=status.HTTP_400_BAD_REQUEST)
+        else:    
+            return Response({"error":"invalid serializer"},
+                            status=status.HTTP_400_BAD_REQUEST)
     
 
 class ApplicationDetailAPIView(generics.RetrieveAPIView):

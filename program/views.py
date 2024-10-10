@@ -36,10 +36,10 @@ class AddCourseAPIView(APIView):
 
                     return redirect('add-course-view')
                 else:
-                    return Response({"message": "you do not have permission to perform this action"},
+                    return Response({"error": "you do not have permission to perform this action"},
                                     status=status.HTTP_403_FORBIDDEN)
             else:
-               return Response({"message": "course or program does not exist"},
+               return Response({"error": "course or program does not exist"},
                                status=status.HTTP_404_NOT_FOUND)
 
 class ProgramDetailAPIView(generics.RetrieveAPIView):

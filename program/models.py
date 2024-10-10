@@ -8,7 +8,7 @@ class Program(models.Model):
     Prgram consists of one or more courses. 
     """
     owner = models.ForeignKey(User,default=None, on_delete=models.CASCADE, related_name='program_owner')
-    name = models.CharField(max_length=150, blank=False)
+    name = models.CharField(max_length=150, blank=False, unique=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, default=None)
     number_of_courses = models.DecimalField(default=0, max_digits=3, decimal_places=0)
     courses = models.ManyToManyField(Course, blank= True, default=None)

@@ -5,7 +5,7 @@ from program.models import  Program
 # Create your models here.
 
 class UserProfile(models.Model):
-    name = models.CharField(max_length=10, default="some name")
+    
     image = models.ImageField(default='images/default.jpeg',upload_to='images/')
     courses = models.ManyToManyField(Course, default=None, through='CourseEnrollment')
     programs = models.ManyToManyField(Program, default=None, through='ProgramEnrollment')

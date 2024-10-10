@@ -90,7 +90,7 @@ class TestCreateAPIView(generics.CreateAPIView):
             try:
                 module = Module.objects.get(id=int(id))
             except Module.DoesNotExist:
-                return Response({"message": "module does not exist"},
+                return Response({"error": "module does not exist"},
                                 status=status.HTTP_404_NOT_FOUND)
             
             if module.owner == self.request.user: 
@@ -105,7 +105,7 @@ class TestCreateAPIView(generics.CreateAPIView):
                 return Response({"error": "you do not have permission to perform this action"},
                                 status=status.HTTP_403_FORBIDDEN)
         else:
-            return Response({"message": "Invalid serializer."},
+            return Response({"error": "Invalid serializer."},
                             status=status.HTTP_400_BAD_REQUEST)
         
 class QuestionCreateAPIView(generics.CreateAPIView):
@@ -129,7 +129,7 @@ class QuestionCreateAPIView(generics.CreateAPIView):
             try:
                 test = Test.objects.get(id=int(id))
             except Test.DoesNotExist:
-                return Response({"message": "test does not exist"},
+                return Response({"error": "test does not exist"},
                                 status=status.HTTP_404_NOT_FOUND)
             
             # create question only if user owns the module the test belongs to
@@ -144,10 +144,10 @@ class QuestionCreateAPIView(generics.CreateAPIView):
                 return Response({"message": "question created succesfully"},
                                 status=status.HTTP_200_OK)
             else:
-                return Response({"message": "you do not have permission to perform this action"},
+                return Response({"error": "you do not have permission to perform this action"},
                                 status=status.HTTP_403_FORBIDDEN)
         else:
-            return Response({"message": "Invalid serializer."},
+            return Response({"error": "Invalid serializer."},
                             status=status.HTTP_400_BAD_REQUEST)
 
 class AnswerCreateAPIView(generics.CreateAPIView):
@@ -170,8 +170,8 @@ class AnswerCreateAPIView(generics.CreateAPIView):
             try:
                 question = Question.objects.get(id=int(question_id))
             except Question.DoesNotExist:
-                return Response({"message": "question does not exist"},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "question does not exist"},
+                                status=status.HTTP_404_NOT_FOUND)
             
             # create answer only if user owns the module the test belongs to and question is multi
             test= question.test
@@ -250,7 +250,7 @@ class SubmitAnswersAPIView(APIView):
         else:
             return  Response({
                 "message":"can not perform this action."
-            }, status=status.HTTP_400_BAD_REQUEST)
+            }, status=status.HTTP_403_FORBIDDEN)
         
 class TestListAPIView(generics.ListAPIView):
     queryset = Test.objects.all()

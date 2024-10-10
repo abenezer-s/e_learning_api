@@ -10,7 +10,7 @@ class Category(models.Model):
 
 class Course(models.Model):
     owner = models.ForeignKey(User,default=None, on_delete=models.CASCADE, related_name='course_owner')
-    name = models.CharField(max_length=150, blank=False)
+    name = models.CharField(max_length=150, blank=False, unique=True)
     number_of_modules = models.DecimalField(default=0, max_digits=3, decimal_places=0)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, default=None)
     created_at = models.DateField(blank=False)

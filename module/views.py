@@ -6,7 +6,7 @@ from rest_framework import generics, status
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from permissions import IsContentCreator, IsLearnerOrContentCreater
+from permissions import IsContentCreator, IsLearner
 from .models import *
 from users.models import CourseEnrollment, ProgramEnrollment, UserProfile
 from .serializers import *
@@ -22,7 +22,7 @@ class MarkComplete(APIView):
     mark the module as completed 
     and update overal progress on the program or course.
     """
-    permission_classes = [IsLearnerOrContentCreater]
+    permission_classes = [IsLearner, IsContentCreator]
 
     def calculate_score(self, course, learner):
         #calculate course score b
@@ -388,7 +388,8 @@ class ModuleCreateAPIView(generics.CreateAPIView):
             try:
                 course = Course.objects.get(name=course_name)
             except Course.DoesNotExist:
-                return Response({"message": "course does not exist"})
+                return Response({"error": "course does not exist"},
+                                status=status.HTTP_404_NOT_FOUND)
             
             if course.owner == self.request.user: 
                 Module.objects.create(owner=self.request.user, course=course, name=name, created_at=date)  
@@ -396,9 +397,11 @@ class ModuleCreateAPIView(generics.CreateAPIView):
                 num_modules += Decimal(1)
                 course.number_of_modules = num_modules
                 course.save()
-                return Response({"message": "module created succesfully"})
+                return Response({"message": "module created succesfully"},
+                                status=status.HTTP_200_OK)
             else:
-                return Response({"message": "you do not have permission to perform this action"})
+                return Response({"message": "you do not have permission to perform this action"},
+                                status=status.HTTP_403_FORBIDDEN)
 
 class MediaCreateAPIView(generics.CreateAPIView):
     queryset = Media.objects.all()
@@ -451,7 +454,8 @@ class ModuleDestroyAPIView(generics.DestroyAPIView):
         if instance.owner != self.request.user:
             raise PermissionDenied("You do not have permission to edit this test.")
         instance.delete()
-        return Response({"message": "Module deleted successfully."})
+        return Response({"message": "Module deleted successfully."},
+                        status=status.HTTP_200_OK)
     
 class MediaDestroyAPIView(generics.DestroyAPIView):
     queryset = Media.objects.all()
@@ -464,5 +468,6 @@ class MediaDestroyAPIView(generics.DestroyAPIView):
         if instance.owner != self.request.user:
             raise PermissionDenied("You do not have permission to edit this test.")
         instance.delete()
-        return Response({"message": "Media deleted successfully."})
+        return Response({"message": "Media deleted successfully."},
+                        status=status.HTTP_200_OK)
     

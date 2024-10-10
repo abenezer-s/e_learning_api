@@ -3,7 +3,7 @@ from .views import *
 
 urlpatterns = [
     path('application/<int:pk>/', ApplicationDetailAPIView.as_view()),
-    path('create/application/', ApplicationCreateAPIView.as_view()),
+    path('application/create/', ApplicationCreateAPIView.as_view()),
     path('applications/', ApplicationListAPIView.as_view()),
     path('applications/respond', ApplicationResponse.as_view()),
     path('application/<int:pk>/update/', ApplicationUpdateAPIView.as_view()),
