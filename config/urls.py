@@ -28,7 +28,7 @@ urlpatterns = [
     path('api/course/', include('course.urls')),
     path('api/module/', include('module.urls')),
     path('api/application/', include('application.urls')),
-    path('api/test/', include('test.urls')),
+    path('api/quiz/', include('quiz.urls')),
     path('api/users/', include('users.urls')),
     
     #JWT auth

@@ -11,22 +11,22 @@ from users.models import CourseEnrollment, ProgramEnrollment, UserProfile
 from .serializers import *
 from decimal import Decimal
 from rest_framework.parsers import MultiPartParser, FormParser
-from test.models import Grade
+from quiz.models import Grade
 from application.serializers import ApplicationSerialzer
 from module.views import isEnrolledOrOwner
 
 # Create your views here.
-class TestDetailAPIView(generics.RetrieveAPIView):
-    queryset = Test.objects.all()
-    serializer_class = TestSerialzer
+class QuizDetailAPIView(generics.RetrieveAPIView):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerialzer
     permission_classes = [IsAuthenticated]
 
-    #can a  see the test if user is learner that is enrolled or owns the module
+    #can a  see the quiz if user is learner that is enrolled or owns the module
     def get(self, request, *args, **kwargs):
         
-        test = self.get_object()
-        module = test.module
-        respone = isEnrolledOrOwner(module, request, 'test')
+        quiz = self.get_object()
+        module = quiz.module
+        respone = isEnrolledOrOwner(module, request, 'quiz')
         
         #grant access if enrolled to either the course or the program or user owns the moudle
         if respone.data['message'] == 'Allowed':
@@ -39,12 +39,12 @@ class QuestionDetailAPIView(generics.RetrieveAPIView):
     serializer_class = QuestionSerializer
     permission_classes = [IsAuthenticated]
 
-    #can a  see the test if user is learner that is enrolled or owns the module
+    #can a  see the quiz if user is learner that is enrolled or owns the module
     def get(self, request, *args, **kwargs):
         
         question = self.get_object()
-        test = question.test
-        module = test.module
+        quiz = question.quiz
+        module = quiz.module
         respone = isEnrolledOrOwner(module, request, 'question')
         
         #grant access if enrolled to either the course or the program or user owns the moudle
@@ -58,12 +58,12 @@ class AnswerDetailAPIView(generics.RetrieveAPIView):
     serializer_class = AnswerSerializer
     permission_classes = [IsAuthenticated]
 
-    #can a  see the test if user is learner that is enrolled or owns the module
+    #can a  see the quiz if user is learner that is enrolled or owns the module
     def get(self, request, *args, **kwargs):
         answer = self.get_object()
         question = answer.question
-        test = question.test
-        module = test.module
+        quiz = question.quiz
+        module = quiz.module
         respone = isEnrolledOrOwner(module, request, 'answer')
         
         #grant access if enrolled to either the course or the program or user owns the moudle
@@ -72,19 +72,18 @@ class AnswerDetailAPIView(generics.RetrieveAPIView):
         else:
             return respone
         
-class TestCreateAPIView(generics.CreateAPIView):
+class QuizCreateAPIView(generics.CreateAPIView):
 
-    queryset = Test.objects.all()
-    serializer_class = TestSerialzer
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerialzer
     permission_classes = [IsContentCreator] 
 
-    # create  Test assign it to a module
+    # create  Quiz assign it to a module
     def create(self, request, *args, **kwargs):
         date = datetime.now()
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             description = serializer.validated_data['description']
-            time_limit = serializer.validated_data['time_limit']
             pass_score = serializer.validated_data['pass_score']
             id = request.data.pop('module_id', None)
             try:
@@ -94,12 +93,16 @@ class TestCreateAPIView(generics.CreateAPIView):
                                 status=status.HTTP_404_NOT_FOUND)
             
             if module.owner == self.request.user: 
-                Test.objects.create(owner=self.request.user, module=module, description=description,time_limit=time_limit, pass_score=pass_score, created_at=date)  
-                num_tests = module.num_tests
-                num_tests += Decimal(1)
-                module.numtests = num_tests
+                Quiz.objects.create(owner=self.request.user, 
+                                    module=module, 
+                                    description=description,
+                                    pass_score=pass_score, 
+                                    created_at=date)  
+                num_quizs = module.num_quizs
+                num_quizs += Decimal(1)
+                module.numquizs = num_quizs
                 module.save()
-                return Response({"message": "test created succesfully"},
+                return Response({"message": "quiz created succesfully"},
                                 status=status.HTTP_200_OK)
             else:
                 return Response({"error": "you do not have permission to perform this action"},
@@ -117,7 +120,7 @@ class QuestionCreateAPIView(generics.CreateAPIView):
     serializer_class = QuestionSerializer
     permission_classes = [IsContentCreator] 
 
-    # create  Test assign it to a module
+    # create  Quiz assign it to a module
     def create(self, request, *args, **kwargs):
         date = datetime.now()
         serializer = self.get_serializer(data=request.data)
@@ -125,22 +128,26 @@ class QuestionCreateAPIView(generics.CreateAPIView):
             multi = serializer.validated_data['multi']      #ethier "True" or "False"
             answer = serializer.validated_data['answer']    #string of actual of answer or choice
             value = serializer.validated_data['value']
-            id = request.data.pop('test_id', None)
+            id = request.data.pop('quiz_id', None)
             try:
-                test = Test.objects.get(id=int(id))
-            except Test.DoesNotExist:
-                return Response({"error": "test does not exist"},
+                quiz = Quiz.objects.get(id=int(id))
+            except Quiz.DoesNotExist:
+                return Response({"error": "quiz does not exist"},
                                 status=status.HTTP_404_NOT_FOUND)
             
-            # create question only if user owns the module the test belongs to
-            module = test.module
+            # create question only if user owns the module the quiz belongs to
+            module = quiz.module
             if module.owner == self.request.user: 
-                Question.objects.create(test=test, value=value, multi=bool(multi),answer=answer, created_at=date)
-                #update number of qestions in the test
-                num_of_questions = test.num_of_questions 
+                Question.objects.create(quiz=quiz, value=value,
+                                        multi=bool(multi),
+                                        answer=answer,
+                                        created_at=date)
+                
+                #update number of qestions in the quiz
+                num_of_questions = quiz.num_of_questions 
                 num_of_questions += Decimal(1)
-                test.num_of_questions = num_of_questions
-                test.save()
+                quiz.num_of_questions = num_of_questions
+                quiz.save()
                 return Response({"message": "question created succesfully"},
                                 status=status.HTTP_200_OK)
             else:
@@ -159,7 +166,7 @@ class AnswerCreateAPIView(generics.CreateAPIView):
     serializer_class = AnswerSerializer
     permission_classes = [IsContentCreator] 
 
-    # create  Test assign it to a module
+    # create  Quiz assign it to a module
     def create(self, request, *args, **kwargs):
         date = datetime.now()
         serializer = self.get_serializer(data=request.data)
@@ -173,11 +180,15 @@ class AnswerCreateAPIView(generics.CreateAPIView):
                 return Response({"error": "question does not exist"},
                                 status=status.HTTP_404_NOT_FOUND)
             
-            # create answer only if user owns the module the test belongs to and question is multi
-            test= question.test
-            module = test.module
+            # create answer only if user owns the module the quiz belongs to and question is multi
+            quiz= question.quiz
+            module = quiz.module
             if module.owner == self.request.user and question.multi: 
-                Answer.objects.create(question=question, value=value, choice_number=choice_number, created_at=date)  
+                Answer.objects.create(question=question,
+                                      value=value,
+                                    choice_number=choice_number,
+                                    created_at=date)  
+                
                 return Response({"message": "answer created succesfully"},
                                 status=status.HTTP_200_OK)
             else:
@@ -196,24 +207,24 @@ class AnswerCreateAPIView(generics.CreateAPIView):
 class SubmitAnswersAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, test_id, learner_id):
+    def post(self, request, quiz_id, learner_id):
         
         try:
-            test = Test.objects.get(id=test_id)
-        except (Test.DoesNotExist):
-            return Response({"error": "Test not found"}, status=status.HTTP_404_NOT_FOUND)
+            quiz = Quiz.objects.get(id=quiz_id)
+        except (Quiz.DoesNotExist):
+            return Response({"error": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
         try:
             learner = User.objects.get(id=learner_id)
         except User.DoesNotExist:
             return Response({"error": "learner not found"}, status=status.HTTP_404_NOT_FOUND)
         
-        module = test.module
-        response = isEnrolledOrOwner(module, request, "test")
+        module = quiz.module
+        response = isEnrolledOrOwner(module, request, "quiz")
         if response.data['message'] == 'Allowed'  and (learner == request.user):
             # Assume the request data contains the answers for each question
             answers = request.data.get('answers', [])
             correct_count = 0
-            questions_count = test.num_of_questions
+            questions_count = quiz.num_of_questions
 
             #check answers' validity
             for answer_data in answers:
@@ -234,12 +245,12 @@ class SubmitAnswersAPIView(APIView):
             # Calculate the grade percentage
             grade = round(float(correct_count) / float(questions_count), 2) * 100 if questions_count > 0 else 0
             
-            if grade >= test.pass_score:
+            if grade >= quiz.pass_score:
                 #update grade records
-                Grade.objects.create(module=module, test=test, learner=learner,grade=grade, passed=True)
+                Grade.objects.create(module=module, quiz=quiz, learner=learner,grade=grade, passed=True)
             else:
                 #update grade records
-                Grade.objects.create(module=module, test=test, learner=learner,grade=grade, passed=False)
+                Grade.objects.create(module=module, quiz=quiz, learner=learner,grade=grade, passed=False)
 
             return Response({
                 "learner": learner.first_name,
@@ -252,19 +263,19 @@ class SubmitAnswersAPIView(APIView):
                 "message":"can not perform this action."
             }, status=status.HTTP_403_FORBIDDEN)
         
-class TestListAPIView(generics.ListAPIView):
-    queryset = Test.objects.all()
-    serializer_class = TestSerialzer
+class QuizListAPIView(generics.ListAPIView):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerialzer
     permission_classes = [IsContentCreator]
 
-    #owners of tests can list all their tests
+    #owners of quizs can list all their quizs
     def filter_queryset(self, query_set):
         owner = self.request.user
-        return Test.objects.filter(owner=owner)
+        return Quiz.objects.filter(owner=owner)
 
-class TestUpdateAPIView(generics.UpdateAPIView):
-    queryset = Test.objects.all()
-    serializer_class = TestSerialzer
+class QuizUpdateAPIView(generics.UpdateAPIView):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerialzer
     permission_classes = [IsContentCreator]
 
     
@@ -272,7 +283,7 @@ class TestUpdateAPIView(generics.UpdateAPIView):
         instance = self.get_object()
         # Check ownership
         if instance.owner != request.user:
-            raise PermissionDenied("You do not have permission to edit this test.")
+            raise PermissionDenied("You do not have permission to edit this quiz.")
         return super().update(request, *args, **kwargs)
 class QuestionUpdateAPIView(generics.UpdateAPIView):
     queryset = Question.objects.all()
@@ -282,9 +293,9 @@ class QuestionUpdateAPIView(generics.UpdateAPIView):
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        test = instance.test
+        quiz = instance.quiz
         # Check ownership
-        if test.owner != request.user:
+        if quiz.owner != request.user:
             raise PermissionDenied("You do not have permission to edit this question.")
         return super().update(request, *args, **kwargs)
     
@@ -296,24 +307,24 @@ class AnswerUpdateAPIView(generics.UpdateAPIView):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         question = instance.question
-        test = question.test
+        quiz = question.quiz
         # Check ownership
-        if test.owner != request.user:
+        if quiz.owner != request.user:
             raise PermissionDenied("You do not have permission to edit this answer.")
         return super().update(request, *args, **kwargs)
     
-class TestDestroyAPIView(generics.DestroyAPIView):
-    queryset = Test.objects.all()
-    serializer_class = TestSerialzer
+class QuizDestroyAPIView(generics.DestroyAPIView):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerialzer
     permission_classes = [IsContentCreator]
 
     def perform_destroy(self,instance):
     
         # Check ownership
         if instance.owner != self.request.user:
-            raise PermissionDenied("You do not have permission to edit this test.")
+            raise PermissionDenied("You do not have permission to edit this quiz.")
         instance.delete()
-        return Response({"message": "Test deleted successfully."},
+        return Response({"message": "Quiz deleted successfully."},
                         status=status.HTTP_200_OK)
 
 class QuestionDestroyAPIView(generics.DestroyAPIView):
@@ -323,11 +334,11 @@ class QuestionDestroyAPIView(generics.DestroyAPIView):
 
     def perform_destroy(self,instance):
         instance = self.get_object()
-        test = instance.test
-        module = test.module
+        quiz = instance.quiz
+        module = quiz.module
         # Check ownership
         if module.owner != self.request.user:
-            raise PermissionDenied("You do not have permission to delete this test.")
+            raise PermissionDenied("You do not have permission to delete this quiz.")
         instance.delete()
         return Response({"message": "question deleted successfully."},
                         status=status.HTTP_200_OK)
@@ -341,8 +352,8 @@ class AnswerDestroyAPIView(generics.DestroyAPIView):
     
         instance = self.get_object()
         question = instance.question
-        test = question.test
-        module = test.module
+        quiz = question.quiz
+        module = quiz.module
         # Check ownership
         if module.owner != self.request.user:
             raise PermissionDenied("You do not have permission to delete this answer.")

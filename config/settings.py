@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'program',
     'course',
     'module',
-    'test',
+    'quiz',
     'application',
     'users',
 ]

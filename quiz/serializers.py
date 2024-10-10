@@ -14,13 +14,13 @@ class AnswerSerializer(serializers.ModelSerializer):
 class QuestionSerializer(serializers.ModelSerializer):
     answer = serializers.CharField(write_only=True)
     choices = serializers.SerializerMethodField()
-    test_id = serializers.CharField(write_only=True)
+    quiz_id = serializers.CharField(write_only=True)
     
     class Meta:
         model = Question
         fields =[
             "id",
-            "test_id",
+            "quiz_id",
             "value",
             "multi",
             "answer",
@@ -33,16 +33,15 @@ class QuestionSerializer(serializers.ModelSerializer):
         else:
             return None
 
-class TestSerialzer(serializers.ModelSerializer):
-    test_question = QuestionSerializer(read_only=True, many=True)
+class QuizSerialzer(serializers.ModelSerializer):
+    quiz_question = QuestionSerializer(read_only=True, many=True)
     module_id = serializers.CharField(write_only=True)
     class Meta:
-        model = Test
+        model = Quiz
         fields =[
             "id",
             "description",
-            "time_limit",
             "pass_score",
             "module_id",
-            "test_question"
+            "quiz_question"
         ]

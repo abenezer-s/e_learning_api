@@ -12,7 +12,7 @@ from users.models import CourseEnrollment, ProgramEnrollment, UserProfile
 from .serializers import *
 from decimal import Decimal
 from rest_framework.parsers import MultiPartParser, FormParser
-from test.models import Grade
+from quiz.models import Grade
 from application.serializers import ApplicationSerialzer
 
 # Create your views here.
@@ -195,28 +195,28 @@ class MarkComplete(APIView):
             if deadline:
                 within_deadline = (deadline >= date_today)
 
-        #check learner has passed all tests in module then update progress
-        num_tests = module.num_tests
-        tests_passed = 0
-        passed_all_tests = None
-        if num_tests > 0: 
-            tests_passed = Grade.objects.filter(learner=learner, module=module, passed=True).count()
+        #check learner has passed all quizs in module then update progress
+        num_quizs = module.num_quizs
+        quizs_passed = 0
+        passed_all_quizs = None
+        if num_quizs > 0: 
+            quizs_passed = Grade.objects.filter(learner=learner, module=module, passed=True).count()
             
-            if num_tests == tests_passed:
-                passed_all_tests = True
+            if num_quizs == quizs_passed:
+                passed_all_quizs = True
                
             else:
-                passed_all_tests= False
-                return Response({"message":"can not mark module as complete. You have not passed all tests."},
+                passed_all_quizs= False
+                return Response({"message":"can not mark module as complete. You have not passed all quizs."},
                                 status=status.HTTP_403_FORBIDDEN)
         else:
-            passed_all_tests = True
+            passed_all_quizs = True
             #create a full score for module ensuring a module is always scored
             Grade.objects.get_or_create(learner=learner, module=module, grade=100, passed=True)
 
         #if learner is within deadline and is enrolled or user is owner of module update
         if (learner_profile.creator == False) or (user == module.owner):
-            if is_enrolled_course and within_deadline and passed_all_tests:
+            if is_enrolled_course and within_deadline and passed_all_quizs:
                 
                 #course could be part of multiple programs
                 module_programs = Program.objects.filter(courses__name=module_course.name)    
@@ -452,7 +452,7 @@ class ModuleDestroyAPIView(generics.DestroyAPIView):
     
         # Check ownership
         if instance.owner != self.request.user:
-            raise PermissionDenied("You do not have permission to edit this test.")
+            raise PermissionDenied("You do not have permission to edit this quiz.")
         instance.delete()
         return Response({"message": "Module deleted successfully."},
                         status=status.HTTP_200_OK)
@@ -466,7 +466,7 @@ class MediaDestroyAPIView(generics.DestroyAPIView):
     
         # Check ownership
         if instance.owner != self.request.user:
-            raise PermissionDenied("You do not have permission to edit this test.")
+            raise PermissionDenied("You do not have permission to edit this quiz.")
         instance.delete()
         return Response({"message": "Media deleted successfully."},
                         status=status.HTTP_200_OK)

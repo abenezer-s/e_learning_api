@@ -5,9 +5,9 @@ from course.models import Course
 from program.models import Program
 
 # Create your models here.
-class Test(models.Model):
+class Quiz(models.Model):
     """
-    a model to store tests for a module with optional time limits.
+    a model to store quizs for a module with optional time limits.
     """
     owner = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
     module = models.ForeignKey(Module, on_delete=models.CASCADE, default=None)
@@ -18,10 +18,10 @@ class Test(models.Model):
     
 class  Question(models.Model):
     """
-    A model used to model a question which is part of the test model. 
+    A model used to model a question which is part of the quiz model. 
     Must have muliple potetnial answers if question is multiple choice( multi=True)
     """
-    test = models.ForeignKey(Test, default=None, on_delete=models.CASCADE, related_name='test_question')
+    quiz = models.ForeignKey(Quiz, default=None, on_delete=models.CASCADE, related_name='quiz_question')
     value = models.TextField(default=None, blank=False)
     multi = models.BooleanField(blank=False)     #feild to determine wheter the question is multiple choice or fill in blank
     answer = models.TextField(blank=False)
@@ -41,7 +41,7 @@ class Grade(models.Model):
     model to store grades of learners.
     """
     module =  models.ForeignKey(Module, default=None, on_delete=models.CASCADE, related_name='module_grade')
-    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='test_grade', blank=True, null=True)
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='quiz_grade', blank=True, null=True)
     learner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='learner_grade')
     grade = models.DecimalField(blank=False, max_digits=5, decimal_places=2)
     passed = models.BooleanField(default=None)

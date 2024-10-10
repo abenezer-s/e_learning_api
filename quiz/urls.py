@@ -1,13 +1,13 @@
 from django.urls import path
 from .views import *
 urlpatterns = [
-    path('test/<int:pk>/', TestDetailAPIView.as_view()),
-    path('create/test/', TestCreateAPIView.as_view()),
-    path('tests/', TestListAPIView.as_view()),
-    path('test/<int:pk>/update/', TestUpdateAPIView.as_view()),
-    path('test/<int:pk>/delete/', TestDestroyAPIView.as_view()),
-    #submit answers for a test
-    path('tests/<int:test_id>/submit/<int:learner_id>/', SubmitAnswersAPIView.as_view(), name='submit-test'),
+    path('<int:pk>/', QuizDetailAPIView.as_view()),
+    path('create/', QuizCreateAPIView.as_view()),
+    path(' ', QuizListAPIView.as_view()),
+    path('<int:pk>/update/', QuizUpdateAPIView.as_view()),
+    path('<int:pk>/delete/', QuizDestroyAPIView.as_view()),
+    #submit answers for a quiz
+    path('<int:quiz_id>/submit/<int:learner_id>/', SubmitAnswersAPIView.as_view(), name='submit-quiz'),
     path('question/<int:pk>/', QuestionDetailAPIView.as_view()),
     path('create/question/', QuestionCreateAPIView.as_view()),
     path('question/<int:pk>/update/', QuestionUpdateAPIView.as_view()),

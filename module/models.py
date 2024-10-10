@@ -10,7 +10,7 @@ class Module(models.Model):
     content = models.TextField(default="default content", blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='under_course')
     created_at = models.DateField(blank=False)
-    num_tests = models.DecimalField(decimal_places=0, max_digits=2, default=0)
+    num_quizs = models.DecimalField(decimal_places=0, max_digits=2, default=0)
 
     def __str__(self) -> str:
         return self.name
