@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from .models import *
+from module.serializers import ModuleSerialzer
 
 class CourseSerialzer(serializers.ModelSerializer):
+    course_module = ModuleSerialzer(read_only=True, many=True)
     class Meta:
         model = Course
         fields = [
@@ -13,7 +15,9 @@ class CourseSerialzer(serializers.ModelSerializer):
             "complete_within",
             "category",
             "duration",
+            "course_module",
         ]
+        read_only_fields = ['number_of_modules','complete_within']
 
 class CategorySerialzer(serializers.ModelSerializer):
     class Meta:
