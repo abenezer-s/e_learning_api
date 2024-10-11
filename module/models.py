@@ -17,6 +17,7 @@ class Module(models.Model):
 
 class Media(models.Model):
     owner = models.ForeignKey(User,default=None, on_delete=models.CASCADE, related_name='media_owner')
+    name = models.CharField(max_length=20, unique=True, default="file name", blank=False)
     file = models.FileField(upload_to='media/')
     description = models.CharField(max_length=255, blank=True)
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='module_media')

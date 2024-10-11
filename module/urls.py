@@ -10,7 +10,6 @@ urlpatterns = [
     #media
     path('media/<int:pk>/', MediaDetailAPIView.as_view()),
     path('<int:module_id>/add-media/', MediaCreateAPIView.as_view()),
-    path('upload/', AddMedia.as_view(), name='upload-api'),
     path('medias/', MediaListAPIView.as_view()),
     path('media/<int:pk>/update/', MediaUpdateAPIView.as_view()),
     path('media/<int:pk>/delete/', MediaDestroyAPIView.as_view()),

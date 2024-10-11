@@ -12,12 +12,13 @@ class MediaSerialzer(serializers.ModelSerializer):
         model = Media
         fields = [
             'id',
+            'name',
             'owner',
             'file',
             'description',
 
         ]
-    read_only_fields = ['owner']
+    read_only_fields = ['owner', 'name']
 
 
 #class AddMediaSerializer(serializers.Serializer):

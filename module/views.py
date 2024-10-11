@@ -255,8 +255,9 @@ class MarkComplete(APIView):
 
 def isEnrolledOrOwner(module, request, obj):
         """
-        A helper function to determine whether a user 
+        A helper function to determine whether a user owns or,
         is enrolled in a program or a course the module belongs to.
+        returns "Allowed" if so.
         """
 
         is_part_prog = None
@@ -272,8 +273,8 @@ def isEnrolledOrOwner(module, request, obj):
         except Program.DoesNotExist:
             is_part_prog = False
 
-        requester = request.user
-        user_profile = UserProfile.objects.get(user=requester)
+        user = request.user
+        user_profile = UserProfile.objects.get(user=user)
         
         #check users enrollment in course
         try:
@@ -300,19 +301,16 @@ def isEnrolledOrOwner(module, request, obj):
 
         #grant access if enrolled to either the course or the program or user owns the moudle
         obj = obj
-        if is_enrolled_course or is_enrolled_program or (module_owner == requester):
+        if is_enrolled_course or is_enrolled_program or (module_owner == user):
             return Response({"message": "Allowed"})
-        else:
-            if not is_enrolled_course:
-                
-                if user_profile.creator:
-                    message = f"Access Denied. You do not own the course or program this {obj} belongs to."
-                    return Response({"message": message})
-                message = "You are not enrolled in the course or program."  
+        else:    
+            if user_profile.creator:
+                message = f"Access Denied. You do not own the course or program this {obj} belongs to."
                 return Response({"message": message})
-            else:
-                message = f"You do not have permission to access this {obj}."
-                return Response({"message":message})
+            
+            message = f"You are not enrolled in the course or program this {obj} belongs to."  
+            return Response({"message": message})
+            
             
 class ModuleDetailAPIView(generics.RetrieveAPIView):
 
@@ -320,7 +318,7 @@ class ModuleDetailAPIView(generics.RetrieveAPIView):
     serializer_class = ModuleSerialzer
     permission_classes = [IsAuthenticated]
     
-    #check if the requester is enrolled or owns the module if so grant access
+    #check if the user is enrolled or owns the module if so grant access
     def get(self, request, *args, **kwargs):
         
         module = self.get_object()
@@ -335,8 +333,20 @@ class ModuleDetailAPIView(generics.RetrieveAPIView):
 
 class MediaDetailAPIView(generics.RetrieveAPIView):
     queryset = Media.objects.all()
-    serializer_class = ApplicationSerialzer 
+    serializer_class = MediaSerialzer 
     permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        
+        media = self.get_object()
+        module = media.module
+        response = isEnrolledOrOwner(module, request, 'media')
+        
+        #grant access if enrolled to either the course or the program or user owns the moudle
+        if response.data['message'] == 'Allowed':
+            return super().get(request, *args, **kwargs)
+        else:
+            return response
 
 class ModuleCreateAPIView(generics.CreateAPIView):
     queryset = Module.objects.all()
@@ -386,17 +396,17 @@ class MediaCreateAPIView(generics.CreateAPIView):
         if serializer.is_valid():
             file = serializer.validated_data["file"]
             description = serializer.validated_data["description"]
+            name = serializer.validated_data["name"]
             user = request.user
             try:
-                print("MODULE ID:",module_id)
                 module = Module.objects.get(id=module_id)
             except Module.DoesNotExist:
                 return Response({"message":"Can not add media to module. Module does not exist."},
                                  status=status.HTTP_404_NOT_FOUND)
-        
+            
             #create media instance if user owns the module
             if user == module.owner:
-                Media.objects.create(owner=user, file=file, description=description, module=module)
+                Media.objects.create(owner=user, name=name, file=file, description=description, module=module)
                 return Response({"message":"Added media to module successfully."},
                                 status=status.HTTP_200_OK)
             else: 
@@ -410,12 +420,22 @@ class ModuleListAPIView(generics.ListAPIView):
     queryset = Module.objects.all()
     serializer_class = ModuleSerialzer
     permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        query_set = Module.objects.filter(owner=user)
+        return query_set
 
 class MediaListAPIView(generics.ListAPIView):
     queryset = Media.objects.all()
     serializer_class = MediaSerialzer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
+        query_set = Media.objects.filter(owner=user)
+        return query_set
+    
 class ModuleUpdateAPIView(generics.UpdateAPIView):
     queryset = Module.objects.all()
     serializer_class = ModuleSerialzer
@@ -431,7 +451,7 @@ class ModuleUpdateAPIView(generics.UpdateAPIView):
     
 class MediaUpdateAPIView(generics.UpdateAPIView):
     queryset = Media.objects.all()
-    serializer_class = ApplicationSerialzer
+    serializer_class = MediaSerialzer
     permission_classes = [IsContentCreator]
 
     def update(self, request, *args, **kwargs):
@@ -461,8 +481,8 @@ class MediaDestroyAPIView(generics.DestroyAPIView):
     serializer_class = ApplicationSerialzer
     permission_classes = [IsContentCreator]
 
-    def perform_destroy(self,instance):
-    
+    def destroy(self,request, *args, **kwargs):
+        instance = self.get_object()
         # Check ownership
         if instance.owner != self.request.user:
             raise PermissionDenied("You do not have permission to edit this quiz.")
