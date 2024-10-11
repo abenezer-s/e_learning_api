@@ -5,10 +5,14 @@ class CourseSerialzer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = [
+            "id",
             "owner",
             "name",
+            "description",
             "number_of_modules",
             "complete_within",
+            "category",
+            "duration",
         ]
 
 class CategorySerialzer(serializers.ModelSerializer):

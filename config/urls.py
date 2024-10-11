@@ -23,13 +23,13 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/category/', include('course.category_urls')),
     path('api/program/', include('program.urls')),
     path('api/course/', include('course.urls')),
     path('api/module/', include('module.urls')),
     path('api/application/', include('application.urls')),
     path('api/quiz/', include('quiz.urls')),
     path('api/users/', include('users.urls')),
+    path('api/category/', include('course.category_urls')),
     
     #JWT auth
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

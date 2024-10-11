@@ -13,12 +13,12 @@ class CourseDetailAPIView(generics.RetrieveAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseSerialzer
     permission_classes = [IsAuthenticated]
-    lookup_field = 'name'
+    
 
 class CourseCreateAPIView(generics.CreateAPIView):
-    queryset = Course.objects.all()
+    queryset = Course.objects.all() 
     serializer_class = CourseSerialzer
-    permission_classes = [IsAuthenticatedOrReadOnly, IsContentCreator] 
+    permission_classes = [IsAuthenticated, IsContentCreator]
 
     def perform_create(self, serializer):
         date = datetime.now()
@@ -49,11 +49,11 @@ class CourseDestroyAPIView(generics.DestroyAPIView):
     serializer_class = CourseSerialzer
     permission_classes = [IsContentCreator]
     
-    def perform_destroy(self,instance):
-    
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
         # Check ownership
-        if instance.owner != self.request.user:
-            raise PermissionDenied("You do not have permission to edit this test.")
+        if instance.owner != request.user:
+            raise PermissionDenied("You do not have permission to delete this course.")
         instance.delete()
         return Response({"message": "Course deleted successfully."}, 
                         status=status.HTTP_200_OK)
@@ -63,7 +63,6 @@ class CategoryDetailAPIView(generics.RetrieveAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerialzer
     permission_classes = [IsAuthenticated]
-    lookup_field = 'name'
 
 class CategoryCreateAPIView(generics.CreateAPIView):
     queryset = Category.objects.all()
@@ -72,15 +71,12 @@ class CategoryCreateAPIView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         date = datetime.now()
-        serializer.save(owner=self.request.user, created_at=date)
+        serializer.save(owner=self.request.user)
 
 class CategoryListAPIView(generics.ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerialzer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filter_fields = ['category__name', 'duration']
-    search_fields = ['name', 'owner__username']
+    permission_classes = [IsAuthenticated]
 
 class CategoryUpdateAPIView(generics.UpdateAPIView):
     queryset = Category.objects.all()
@@ -91,7 +87,7 @@ class CategoryUpdateAPIView(generics.UpdateAPIView):
         instance = self.get_object()
         # Check ownership
         if instance.owner != request.user:
-            raise PermissionDenied("You do not have permission to edit this course.")
+            raise PermissionDenied("You do not have permission to delete this category.")
         return super().update(request, *args, **kwargs)
 
 class CategoryDestroyAPIView(generics.DestroyAPIView):
@@ -99,11 +95,13 @@ class CategoryDestroyAPIView(generics.DestroyAPIView):
     serializer_class = CategorySerialzer
     permission_classes = [IsContentCreator]
     
-    def perform_destroy(self,instance):
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
     
         # Check ownership
         if instance.owner != self.request.user:
-            raise PermissionDenied("You do not have permission to edit this test.")
+            raise PermissionDenied("You do not have permission to delete this category.")
+        
         instance.delete()
         return Response({"message": "Category deleted successfully."}, 
                         status=status.HTTP_200_OK)

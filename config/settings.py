@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-*b5@sd#s*sfvc*e4+gix5#w)9#9(2z5j!2bs-p+f5jm%m!^p(^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -136,7 +136,7 @@ REST_FRAMEWORK = {
     ],
 
     "DEFAULT_PERMISSION_CLASSES" : [
-        
+         'rest_framework.permissions.AllowAny',
     ],
     
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
@@ -146,6 +146,7 @@ REST_FRAMEWORK = {
 
 }
 
+#AUTH_USER_MODEL = 'users.EUser'
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # Set access token expiration
@@ -170,22 +171,22 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 #SECURE_SSL_REDIRECT = True
 
 # HTTP Strict Transport Security (HSTS)
-SECURE_HSTS_SECONDS = 31536000  # 1 year
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
-
-# Ensure cookies are only sent over HTTPS
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-
-# Prevent clickjacking
-X_FRAME_OPTIONS = 'DENY'
-
-# Prevent MIME type sniffing
-SECURE_CONTENT_TYPE_NOSNIFF = True
-
-# Enable XSS filtering
-SECURE_BROWSER_XSS_FILTER = True
-
-# Trust the proxy header indicating HTTPS
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+#SECURE_HSTS_SECONDS = 31536000  # 1 year
+#SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+#SECURE_HSTS_PRELOAD = True
+#
+## Ensure cookies are only sent over HTTPS
+#SESSION_COOKIE_SECURE = True
+#CSRF_COOKIE_SECURE = True
+#
+## Prevent clickjacking
+#X_FRAME_OPTIONS = 'DENY'
+#
+## Prevent MIME type sniffing
+#SECURE_CONTENT_TYPE_NOSNIFF = True
+#
+## Enable XSS filtering
+#SECURE_BROWSER_XSS_FILTER = True
+#
+## Trust the proxy header indicating HTTPS
+#SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
