@@ -7,10 +7,13 @@ class ProgramSerialzer(serializers.ModelSerializer):
     class Meta:
         model = Program
         fields = [
+            "id",
             "owner",
             "name",
+            "description",
             "number_of_courses",
             "complete_within",
+            "duration",
             "courses"
         ]
 
