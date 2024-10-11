@@ -7,20 +7,23 @@ class MarkAsCompleteSerializer(serializers.Serializer):
     program_name = serializers.CharField()   
 
 class MediaSerialzer(serializers.ModelSerializer):
+
     class Meta:
         model = Media
         fields = [
             'id',
             'owner',
             'file',
-            'description'
+            'description',
+
         ]
+    read_only_fields = ['owner']
 
 
-class AddMediaSerializer(serializers.Serializer):
-    media = serializers.FileField()
-    module_name = serializers.CharField()
-    description = serializers.CharField()
+#class AddMediaSerializer(serializers.Serializer):
+#    file = serializers.FileField()
+#    description = serializers.CharField()
+    
     
 class ModuleSerialzer(serializers.ModelSerializer):
     module_media = MediaSerialzer(many=True, read_only=True)
@@ -29,8 +32,11 @@ class ModuleSerialzer(serializers.ModelSerializer):
         model = Module
         fields = [
             'id',
+            'owner',
             'name', 
-            'course',
             'content',
             'module_media',
+            'created_at',
+            'num_quizs'
         ]
+        read_only_fields = ['created_at','num_quizs','owner']

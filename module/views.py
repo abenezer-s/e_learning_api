@@ -253,41 +253,6 @@ class MarkComplete(APIView):
                 return Response({"error":"you do not have permisssion to perform this action"},
                                 status=status.HTTP_403_FORBIDDEN)
 
-class AddMedia(APIView):
-    """
-    Given a module name and a path to a file, add media to a module if module exists
-    and request is from owner.
-    """
-    parser_classes = (MultiPartParser, FormParser)
-    permission_classes = [IsContentCreator]
-
-    def post(self, request):
-
-        serializer = AddMediaSerializer(data=request.data)
-        if serializer.is_valid():
-            file = serializer.validated_data["media"]
-            module_name = serializer.validated_data["module_name"]
-            description = serializer.validated_data["description"]
-            user = request.user
-            try:
-                module = Module.objects.get(name=module_name)
-            except Module.DoesNotExist:
-                return Response({"message":"Can not add media to module. Module does not exist."},
-                                 status=status.HTTP_404_NOT_FOUND)
-        
-            #create media instance if user owns the module
-            if user == module.owner:
-                Media.objects.create(owner=user, file=file, description=description, module=module)
-                return Response({"message":"Added media to module successfully."},
-                                status=status.HTTP_200_OK)
-            else: 
-                return Response({"error":"Can not add media to module. You do not have permission."},
-                                status=status.HTTP_403_FORBIDDEN)
-        else:
-            e = serializer.errors
-            return Response({"message":"Invalid serializer.",
-                             "error":e},
-                             status=status.HTTP_400_BAD_REQUEST)
 def isEnrolledOrOwner(module, request, obj):
         """
         A helper function to determine whether a user 
@@ -376,23 +341,27 @@ class MediaDetailAPIView(generics.RetrieveAPIView):
 class ModuleCreateAPIView(generics.CreateAPIView):
     queryset = Module.objects.all()
     serializer_class = ModuleSerialzer
-    permission_classes = [IsAuthenticatedOrReadOnly, IsContentCreator] 
+    permission_classes = [IsAuthenticated, IsContentCreator] 
 
     # create  module assign it to a course and update course info
-    def create(self, request, *args, **kwargs):
+    def create(self, request, course_id, *args, **kwargs):
         date = datetime.now()
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             name = serializer.validated_data['name']
-            course_name = serializer.validated_data['course']
+        
             try:
-                course = Course.objects.get(name=course_name)
+                course = Course.objects.get(id=course_id)
             except Course.DoesNotExist:
                 return Response({"error": "course does not exist"},
                                 status=status.HTTP_404_NOT_FOUND)
             
             if course.owner == self.request.user: 
-                Module.objects.create(owner=self.request.user, course=course, name=name, created_at=date)  
+                Module.objects.create(owner=self.request.user,
+                                    course=course,
+                                    name=name, 
+                                    created_at=date)
+                  
                 num_modules = course.number_of_modules          #update number of modules field to reflect chnage
                 num_modules += Decimal(1)
                 course.number_of_modules = num_modules
@@ -402,22 +371,50 @@ class ModuleCreateAPIView(generics.CreateAPIView):
             else:
                 return Response({"message": "you do not have permission to perform this action"},
                                 status=status.HTTP_403_FORBIDDEN)
-
+            
+        return Response(serializer.errors,
+                        status=status.HTTP_400_BAD_REQUEST)
+    
 class MediaCreateAPIView(generics.CreateAPIView):
     queryset = Media.objects.all()
     serializer_class = ApplicationSerialzer
-    permission_classes = [IsAuthenticatedOrReadOnly, IsContentCreator] 
+    permission_classes = [IsContentCreator] 
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+    def create(self, request, module_id):
+
+        serializer = MediaSerialzer(data=request.data)
+        if serializer.is_valid():
+            file = serializer.validated_data["file"]
+            description = serializer.validated_data["description"]
+            user = request.user
+            try:
+                print("MODULE ID:",module_id)
+                module = Module.objects.get(id=module_id)
+            except Module.DoesNotExist:
+                return Response({"message":"Can not add media to module. Module does not exist."},
+                                 status=status.HTTP_404_NOT_FOUND)
+        
+            #create media instance if user owns the module
+            if user == module.owner:
+                Media.objects.create(owner=user, file=file, description=description, module=module)
+                return Response({"message":"Added media to module successfully."},
+                                status=status.HTTP_200_OK)
+            else: 
+                return Response({"error":"Can not add media to module. You do not have permission."},
+                                status=status.HTTP_403_FORBIDDEN)
+        
+        return Response(serializer.errors,
+                        status=status.HTTP_400_BAD_REQUEST)
 
 class ModuleListAPIView(generics.ListAPIView):
     queryset = Module.objects.all()
     serializer_class = ModuleSerialzer
+    permission_classes = [IsAuthenticated]
 
 class MediaListAPIView(generics.ListAPIView):
     queryset = Media.objects.all()
     serializer_class = MediaSerialzer
+    permission_classes = [IsAuthenticated]
 
 class ModuleUpdateAPIView(generics.UpdateAPIView):
     queryset = Module.objects.all()
@@ -431,6 +428,7 @@ class ModuleUpdateAPIView(generics.UpdateAPIView):
         if instance.owner != request.user:
             raise PermissionDenied("You do not have permission to edit this module.")
         return super().update(request, *args, **kwargs)
+    
 class MediaUpdateAPIView(generics.UpdateAPIView):
     queryset = Media.objects.all()
     serializer_class = ApplicationSerialzer
@@ -448,11 +446,12 @@ class ModuleDestroyAPIView(generics.DestroyAPIView):
     serializer_class = ModuleSerialzer
     permission_classes = [IsContentCreator]
 
-    def perform_destroy(self,instance):
-    
+    def destroy(self, request, *args, **kwargs ):
+        instance = o=self.get_object()
         # Check ownership
         if instance.owner != self.request.user:
             raise PermissionDenied("You do not have permission to edit this quiz.")
+        
         instance.delete()
         return Response({"message": "Module deleted successfully."},
                         status=status.HTTP_200_OK)

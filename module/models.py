@@ -6,9 +6,9 @@ from program.models import Program
 # Create your models here.
 class Module(models.Model):
     owner = models.ForeignKey(User, default=None, on_delete=models.CASCADE, related_name='module_owner')
-    name = models.CharField(max_length=150, blank=False)
+    name = models.CharField(max_length=150, blank=False, unique=True)
     content = models.TextField(default="default content", blank=True)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='under_course')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='course_module')
     created_at = models.DateField(blank=False)
     num_quizs = models.DecimalField(decimal_places=0, max_digits=2, default=0)
 
