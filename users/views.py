@@ -1,19 +1,19 @@
-from django.shortcuts import render, redirect
 from rest_framework import generics
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate
 from .models import *
 from .serializers import *
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from django.http import HttpResponse
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.exceptions  import PermissionDenied
 
 #registratoin_view
 @api_view(['POST'])
-def content_creator_sign_up(request):
+def sign_up_creator(request):
 
     if request.method == 'POST':
       #pass more context inorder to indetify who is signing up
@@ -24,7 +24,7 @@ def content_creator_sign_up(request):
       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 @api_view(['POST'])
-def content_consumer_sign_up(request):
+def sign_up_learner(request):
 
     if request.method == 'POST':
       #pass more context inorder to indetify who is signing up
@@ -81,7 +81,7 @@ class UserProfileListAPIView(generics.ListAPIView):
     view for user profile details
     """
     queryset = UserProfile.objects.all()
-    serializer_class = UserProfileSerializer        
+    serializer_class = UserProfileSerializer       
 
 class UserProfileUpdateAPIView(generics.UpdateAPIView):
     """
@@ -89,27 +89,36 @@ class UserProfileUpdateAPIView(generics.UpdateAPIView):
     """
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
+    permission_classes = [IsAuthenticated]
 
-class UserProfileDestroyAPIView(generics.DestroyAPIView):
-    """
-    view for user profile details
-    """
-    queryset = UserProfile.objects.all()
-    serializer_class = UserProfileSerializer
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Check ownership
+        if instance.user.username != request.user.username:
+            raise PermissionDenied("You do not have permission to edit this profile.")
+        else:
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response({"message":"succesfully updated profile.",
+                            "updated_profile" : serializer.data},
+                            status=status.HTTP_200_OK)
 
 class UserDetailAPIView(generics.RetrieveAPIView):
     """
     view for user profile details
     """
-    queryset = UserProfile.objects.all()
+    queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
 
 class UserListAPIView(generics.ListAPIView):
     """
     view for user profile details
     """
-    queryset = User.objects.all()
-    serializer_class = UserSerializer        
+    queryset = User.objects.all().order_by('id')
+    serializer_class = UserSerializer     
+    permission_classes = [IsAuthenticated]   
 
 class UserUpdateAPIView(generics.UpdateAPIView):
     """
@@ -117,6 +126,20 @@ class UserUpdateAPIView(generics.UpdateAPIView):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Check ownership
+        if instance.username != request.user.username:
+            raise PermissionDenied("You do not have permission to edit this profile.")
+        else:
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response({"message":"succesfully updated user",
+                            "updated_user" : serializer.data},
+                            status=status.HTTP_200_OK)
 
 class UserDestroyAPIView(generics.DestroyAPIView):
     """
@@ -124,6 +147,25 @@ class UserDestroyAPIView(generics.DestroyAPIView):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def destroy(self, request, *args, **kwargs):
+        # Retrieve the object to be deleted
+        instance = self.get_object()
+        user = request.user
+        username = user.username
+        # check ownership
+        if user == instance:
+            # Perform the deletion
+            self.perform_destroy(instance)
+            message = f"user({username}), deleted successfully."
+            return Response(message,
+                         status=status.HTTP_200_OK)
+
+    
+        return Response({"message": "You do not have permission to delete this item."},
+                            status=status.HTTP_403_FORBIDDEN)
+        
 
 class ProgramEnrollmentDetailAPIView(generics.RetrieveAPIView):
     """
@@ -132,6 +174,7 @@ class ProgramEnrollmentDetailAPIView(generics.RetrieveAPIView):
     queryset = ProgramEnrollment.objects.all()
     serializer_class = ProgramEnrollmentSerializer
     lookup_field = 'user'
+    permission_classes = [IsAuthenticated]
 
 class CourseEnrollmentDetailAPIView(generics.RetrieveAPIView):
     '''
@@ -140,6 +183,7 @@ class CourseEnrollmentDetailAPIView(generics.RetrieveAPIView):
     queryset = CourseEnrollment.objects.all()
     serializer_class = CourseEnrollmentSerializer
     lookup_field = 'user'
+    permission_classes = [IsAuthenticated]
 
 
 

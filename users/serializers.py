@@ -11,7 +11,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'edit_url',
             'image',
             'courses', 
-            'programs'
+            'programs',
+            'creator',
         ]
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -46,8 +47,9 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         #use provided context inorder to assing the type of user created
         if creator == 'creator':
             UserProfile.objects.create(user=user, creator=True)
-        else:
+        elif creator == 'consumer':
             UserProfile.objects.create(user=user)
+            print("serailzier created consmerr user")
 
 
         return user
