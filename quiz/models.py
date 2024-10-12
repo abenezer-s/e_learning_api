@@ -10,6 +10,7 @@ class Quiz(models.Model):
     a model to store quizs for a module with optional time limits.
     """
     owner = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
+    name = models.CharField(max_length=30, default='default test naem', unique=True)
     module = models.ForeignKey(Module, on_delete=models.CASCADE, default=None)
     description = models.TextField(blank=False)
     pass_score = models.DecimalField(default=50, blank=True, max_digits=3, decimal_places=0)
@@ -31,7 +32,7 @@ class Answer(models.Model):
     """
     potential answer to a question
     """
-    choice_number = models.DecimalField(default=None, blank=False, max_digits=1, decimal_places=0)
+    choice_number = models.DecimalField(default=None, blank=False, max_digits=1, decimal_places=0) # the choice number in the possible avaible choices
     value = models.TextField(blank=False)
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='choices', default=None)
     created_at = models.DateField(default=None)

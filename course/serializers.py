@@ -17,7 +17,7 @@ class CourseSerialzer(serializers.ModelSerializer):
             "duration",
             "course_module",
         ]
-        read_only_fields = ['number_of_modules','complete_within']
+        read_only_fields = ['number_of_modules']
 
 class CategorySerialzer(serializers.ModelSerializer):
     class Meta:

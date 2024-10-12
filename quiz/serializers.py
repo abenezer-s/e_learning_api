@@ -2,32 +2,49 @@ from rest_framework import serializers
 from .models import *
 
 class AnswerSerializer(serializers.ModelSerializer):
-     question_id = serializers.CharField(write_only=True)
-     class Meta:
-         model = Answer
-         fields = [
-            'choice_number',
-            'value',
-            'question_id'
-         ]
+    
+    class Meta:
+        model = Answer
+        fields = [
+           'question_id',
+           'choice_number',
+           'value',
+        ]
+
+        read_only_field = ['question_id']
 
 class QuestionSerializer(serializers.ModelSerializer):
-    answer = serializers.CharField(write_only=True)
+    
     choices = serializers.SerializerMethodField()
-    quiz_id = serializers.CharField(write_only=True)
     
     class Meta:
         model = Question
         fields =[
             "id",
-            "quiz_id",
+            "quiz",
             "value",
             "multi",
             "answer",
             "choices"
         ]
 
+        read_only_field = ['quiz']
+
+    def to_representation(self, instance):
+    
+        representation = super().to_representation(instance)
+        
+        user = self.context['request'].user
+        
+        # Check if the user is a creater, if so then 
+        if not user.userprofile.creator:
+            # Remove the field from representation
+            representation.pop('answer', None)
+        
+        return representation
+    
     def get_choices(self, obj):
+        #return the available choices for a question if the question is multiple choice.
         if obj.multi:
             return AnswerSerializer(obj.choices.all(), read_only=True, many=True).data
         else:
@@ -35,13 +52,15 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 class QuizSerialzer(serializers.ModelSerializer):
     quiz_question = QuestionSerializer(read_only=True, many=True)
-    module_id = serializers.CharField(write_only=True)
     class Meta:
         model = Quiz
         fields =[
+            "owner",
             "id",
+            "name",
             "description",
             "pass_score",
-            "module_id",
-            "quiz_question"
+            "quiz_question",
         ]
+
+        read_only_field = ['owner']
