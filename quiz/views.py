@@ -247,7 +247,13 @@ class AnswerCreateAPIView(generics.CreateAPIView):
             except Question.DoesNotExist:
                 return Response({"error": "question does not exist"},
                                 status=status.HTTP_404_NOT_FOUND)
-    
+            
+            #check if choice number aleardy exists in the choices for the question
+            contains = question.choices.filter(choice_number__exact=choice_number)
+            if contains:
+                return Response({"error": "choice number already exists."},
+                                status=status.HTTP_400_BAD_REQUEST)
+
             # create answer only if user owns the module the quiz belongs to and question is multi
             quiz= question.quiz
             module = quiz.module
@@ -296,15 +302,46 @@ class AnswerUpdateAPIView(generics.UpdateAPIView):
     serializer_class = AnswerSerializer
     permission_classes = [IsContentCreator]
 
-    def update(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         question = instance.question
         quiz = question.quiz
         # Check ownership
         if quiz.owner != request.user:
             raise PermissionDenied("You do not have permission to edit this answer.")
-        return super().update(request, *args, **kwargs)
+            
+        if serializer.is_valid():
+            #check if choice number aleardy exists in the choices for the question
+            if 'choice_number' in serializer.validated_data:
+                choice_number = serializer.validated_data['choice_number'] 
+                contains = question.choices.filter(choice_number__exact=choice_number)
+                if contains:
+                    return Response({"error": "choice number already exists."},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                
+                instance.choice_number = serializer.validated_data['choice_number']
 
+            else:
+                instance.choice_number =  instance.choice_number
+
+            if 'value' in serializer.validated_data:
+                instance.value = serializer.validated_data['value']
+            else:
+                instance.value = instance.value
+            
+            instance.save()
+            return Response({'message': 'Update successful'}, 
+                            status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    #def put(self, request, pk):
+    #       instance = MyModel.objects.get(pk=pk)
+    #       serializer = MyModelSerializer(instance, data=request.data)
+    #       if serializer.is_valid():
+    #           serializer.save()
+    #           return Response({'message': 'Update successful'}, status=status.HTTP_200_OK)
+    #       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 class AnswerDestroyAPIView(generics.DestroyAPIView):
     queryset = Answer.objects.all()
     serializer_class = AnswerSerializer
@@ -341,6 +378,8 @@ class SubmitAnswersAPIView(APIView):
         
         module = quiz.module
         response = isEnrolledOrOwner(module, request, "quiz")
+        
+        #check if user is the actual learner and is enrolled or owns the module
         if response.data['message'] == 'Allowed'  and (learner == request.user):
             # Assume the request data contains the answers for each question
             answers = request.data.get('answers', [])

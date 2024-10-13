@@ -10,8 +10,8 @@ class Quiz(models.Model):
     a model to store quizs for a module with optional time limits.
     """
     owner = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
-    name = models.CharField(max_length=30, default='default test naem', unique=True)
-    module = models.ForeignKey(Module, on_delete=models.CASCADE, default=None)
+    name = models.CharField(max_length=30, default='default test name', unique=True)
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='module_quiz',default=None)
     description = models.TextField(blank=False)
     pass_score = models.DecimalField(default=50, blank=True, max_digits=3, decimal_places=0)
     num_of_questions = models.DecimalField(max_digits=3, decimal_places=0, default=0)

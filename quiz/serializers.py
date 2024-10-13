@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from rest_framework import status
+from rest_framework.response import Response
 from .models import *
 
 class AnswerSerializer(serializers.ModelSerializer):
@@ -6,6 +8,7 @@ class AnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Answer
         fields = [
+            'id',
            'question_id',
            'choice_number',
            'value',
@@ -57,10 +60,11 @@ class QuizSerialzer(serializers.ModelSerializer):
         fields =[
             "owner",
             "id",
+            "module",
             "name",
             "description",
             "pass_score",
             "quiz_question",
         ]
 
-        read_only_field = ['owner']
+        read_only_field = ['owner', 'module']
