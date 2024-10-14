@@ -26,7 +26,7 @@ class ProgramEnrollment(models.Model):
         ('completed', 'Completed'),
         ('incomplete', 'Incomplete'),
     ]
-    status = models.CharField(max_length=11, default='in porgress', choices=status_choices)
+    status = models.CharField(max_length=11, default='in progress', choices=status_choices)
     deadline = models.DateField(blank=False, default=None) #date to finish before, calculated when enrolling
     
 class CourseEnrollment(models.Model):
@@ -40,5 +40,5 @@ class CourseEnrollment(models.Model):
         ('completed', 'Completed'),
         ('incomplete', 'InComplete'),
     ]
-    status = models.CharField(max_length=11, default='in porgress', choices=status_choices)
+    status = models.CharField(max_length=11, default='in progress', choices=status_choices)
     deadline = models.DateField(blank=False, default=None) #date to finish before, calculated when enrolling
