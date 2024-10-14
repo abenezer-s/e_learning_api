@@ -144,6 +144,28 @@ class ApplicationResponseProgram(APIView):
         return Response({"message":"Application to program rejected succesfully"},
                         status=status.HTTP_200_OK)
 
+    def enroll_in_all(self, courses, learner_profile, date, deadline=None ):
+            #enroll learner in the courses quesryset if they hav not been enrolled already
+            
+            for course in courses:
+                try:
+                    CourseEnrollment.objects.get(course=course, learner=learner_profile)
+                except CourseEnrollment.DoesNotExist:
+                    #enroll
+                    if deadline:
+                        
+                        CourseEnrollment.objects.create(course=course,
+                                                    learner=learner_profile,
+                                                    date_of_enrollment=date,
+                                                    deadline=deadline)
+                    else:
+                        
+                        CourseEnrollment.objects.create(course=course,
+                                                    learner=learner_profile,
+                                                    date_of_enrollment=date)
+            return
+            
+
     def accept(self, learner_id, program_id, request, date):
         #accept application for program
         try:
@@ -173,19 +195,44 @@ class ApplicationResponseProgram(APIView):
             
             application.state = 'accepted' 
             application.save()
-
+        
         #enroll learner to program with appropriate deadlines if there are any
         num_weeks = program.complete_within
         if num_weeks:
+            
             deadline = date + timedelta(weeks=int(num_weeks))
             ProgramEnrollment.objects.create(learner=learner_profile,
                                             program=program, 
                                             date_of_enrollment=date, 
                                             deadline=deadline)
+            
+            #enroll learner in all the courses the program has
+            courses = program.courses.all()
+            if courses:
+                self.enroll_in_all(courses, learner_profile, date, deadline)
+                message = 'Application to program accepted succesfully. leaner enrolled the program and courses in the program'
+                
+                return Response({"message": message},
+                                status=status.HTTP_200_OK)
+            
+            return Response({"message":"Application to program accepted succesfully"},
+                        status=status.HTTP_200_OK)
+
         else:
+            #with out deadlines
+            
             ProgramEnrollment.objects.create(learner=learner_profile, 
                                              program=program, 
                                              date_of_enrollment=date)
+            courses = program.courses.all()
+            if courses:
+                
+                self.enroll_in_all(courses, learner_profile, date)
+                message = 'Application to program accepted succesfully. \
+                            learner enrolled in the program and courses in the program'
+                
+                return Response({"message": message},
+                        status=status.HTTP_200_OK)
             
         return Response({"message":"Application to program accepted succesfully"},
                         status=status.HTTP_200_OK)
