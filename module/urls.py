@@ -14,5 +14,5 @@ urlpatterns = [
     path('media/<int:pk>/update/', MediaUpdateAPIView.as_view()),
     path('media/<int:pk>/delete/', MediaDestroyAPIView.as_view()),
     
-    path('<int:module_id>/mark_complete/<int:learner_id>/', MarkComplete.as_view()),
+    path('<int:module_id>/mark-complete/<int:learner_id>/', MarkComplete.as_view()),
 ]
