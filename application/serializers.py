@@ -20,8 +20,8 @@ class ApplicationResponseCourseSerializer(serializers.Serializer):
             'motivation_letter' ,
             'submitted_at' ,
             'course' ,
-            'state' 
-            
+            'state',
+            'response'
         ]
 
         read_only_field = ['owner', 'learner','submitted_at', 'course', 'state']

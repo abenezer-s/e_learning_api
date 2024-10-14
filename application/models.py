@@ -9,8 +9,8 @@ class Application(models.Model):
     learner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='learner')
     motivation_letter = models.TextField(max_length=600, blank=False)
     submitted_at = models.DateField(blank=False)
-    program = models.ForeignKey(Program,default=None, on_delete=models.CASCADE)
-    course =  models.ForeignKey(Course,default=None, on_delete=models.CASCADE)
+    program = models.ForeignKey(Program,default=None, null=True, on_delete=models.CASCADE)
+    course =  models.ForeignKey(Course,default=None, null=True,on_delete=models.CASCADE)
     status = [
         ('accepted', 'Accepted'),
         ('rejected', 'Rejected'),
