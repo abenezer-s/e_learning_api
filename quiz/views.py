@@ -1,5 +1,6 @@
 from datetime import datetime
 from django.db import IntegrityError
+from django.db.models import Q
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework import generics, status
@@ -380,7 +381,7 @@ class SubmitAnswersAPIView(APIView):
         response = isEnrolledOrOwner(module, request, "quiz")
         
         #check if user is the actual learner and is enrolled or owns the module
-        if response.data['message'] == 'Allowed'  and (learner == request.user):
+        if response.data['message'] == 'Allowed'  and (learner == request.user) and response.data['course_enrl']:
             # Assume the request data contains the answers for each question
             answers = request.data.get('answers', [])
             correct_count = 0
@@ -407,16 +408,26 @@ class SubmitAnswersAPIView(APIView):
 
             # Calculate the grade percentage
             grade = round(float(correct_count) / float(questions_count), 2) * 100 if questions_count > 0 else 0
-            
+            #check if previously attempted and if score is better create a new one and delete old 
+            try:
+                instance = Grade.objects.get(Q(learner=learner) & Q(quiz=quiz))
+            except Grade.DoesNotExist:
+                pass
+            else:
+                prev_grade = instance.grade
+                if grade <= prev_grade:
+                    return  Response({"error":"current grade not an improvement."},
+                                     status=status.HTTP_200_OK)
+                
             if grade >= quiz.pass_score:
-                #update grade records
+                #update grade records pass
                 Grade.objects.create(module=module, 
                                     quiz=quiz, 
                                     learner=learner,
                                     grade=grade, 
                                     passed=True)
             else:
-                #update grade records
+                #update grade records fail
                 Grade.objects.create(module=module, 
                                      quiz=quiz, 
                                      learner=learner,
