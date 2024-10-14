@@ -514,6 +514,11 @@ class ModuleDestroyAPIView(generics.DestroyAPIView):
         if instance.owner != self.request.user:
             raise PermissionDenied("You do not have permission to edit this quiz.")
         
+        course = instance.course
+        num_mod = course.number_of_modules
+        num_mod -= Decimal(1)
+        course.number_of_modules = num_mod
+        course.save()
         instance.delete()
         return Response({"message": "Module deleted successfully."},
                         status=status.HTTP_200_OK)
