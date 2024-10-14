@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.db.models import Q
 from datetime import datetime
 from django.shortcuts import redirect
 from django_filters.rest_framework import DjangoFilterBackend
@@ -32,7 +33,7 @@ class AddCourseAPIView(APIView):
             return Response({"error": "program not found"}, status=status.HTTP_404_NOT_FOUND)
         
         #check if course has already been added before adding
-        contains = Program.objects.filter(courses__id=course_id).exists()
+        contains = Program.objects.filter(Q(courses__id=course_id) & Q(id=program_id)).exists()
         if contains:
             return Response({"error": "Course has already been added"},
                             status=status.HTTP_400_BAD_REQUEST) 

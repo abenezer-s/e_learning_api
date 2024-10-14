@@ -8,6 +8,8 @@ from rest_framework.response import Response
 from permissions import IsContentCreator
 from .models import *
 from .serializers import *
+from program.models import Program
+from decimal import Decimal
 
 class CourseDetailAPIView(generics.RetrieveAPIView):
     queryset = Course.objects.all()
@@ -54,6 +56,16 @@ class CourseDestroyAPIView(generics.DestroyAPIView):
         # Check ownership
         if instance.owner != request.user:
             raise PermissionDenied("You do not have permission to delete this course.")
+        
+        programs = Program.objects.filter(courses__name=instance.name)
+        if programs:
+            for program in programs:
+            #adjust course count for each program course belongs to
+                num_courses= program.number_of_courses          #update number of modules field to reflect chnage
+                num_courses -= Decimal(1)
+                program.number_of_courses = num_courses
+                program.save()
+
         instance.delete()
         return Response({"message": "Course deleted successfully."}, 
                         status=status.HTTP_200_OK)
