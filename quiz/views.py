@@ -418,7 +418,9 @@ class SubmitAnswersAPIView(APIView):
                 if grade <= prev_grade:
                     return  Response({"error":"current grade not an improvement."},
                                      status=status.HTTP_200_OK)
-                
+                else:
+                    instance.delete()
+                    
             if grade >= quiz.pass_score:
                 #update grade records pass
                 Grade.objects.create(module=module, 
