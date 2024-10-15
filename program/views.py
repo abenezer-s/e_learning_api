@@ -72,7 +72,7 @@ class ProgramListAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly] 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filter_fields = ['category__name', 'duration']
-    search_fields = ['name', 'owner__name']
+    search_fields = ['name', 'owner__first_name', 'owner__last_name']
 
 class ProgramUpdateAPIView(generics.UpdateAPIView):
     queryset = Program.objects.all()

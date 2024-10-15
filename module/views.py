@@ -55,6 +55,7 @@ class MarkComplete(APIView):
        
         #check if course is part of any program and update program progress if course is co7mpleted
         message_list = []
+        compeletd_progs = []
         if program_enrollments and (cur_progress_course == 100):
 
             #update each program that conatians the course and  learner is enrolled in
@@ -88,7 +89,7 @@ class MarkComplete(APIView):
                         count_course = Decimal(0)
                         for course_inst in program_courses:
                            #calculate course score
-                            course_score = self.calculate_score(course_inst, learner)#Decimal(0) 
+                            course_score = self.calculate_score(course_inst, learner) 
                             prog_score += course_score
                             count_course += Decimal(1)
                         
@@ -103,12 +104,17 @@ class MarkComplete(APIView):
                         
                         program_enrollment.status = 'completed'
                         program_enrollment.save()
-                        return Response({"message":"program completed successfully!",
-                                         "score": prog_score},
-                                         status=status.HTTP_200_OK)
+                        prog_name = program_enrollment.program.name
+                        msg = f"completed program {prog_name} with score:{formated_score}"
+                        compeletd_progs.append(msg)
+                        
                     else:
                         continue
 
+            if compeletd_progs:
+                return Response({"message":compeletd_progs,
+                                "past_deadline":message_list},
+                                status=status.HTTP_200_OK)
             #learner has completed the course
             
             course_score = self.calculate_score(module_course, learner) #calculate course score
